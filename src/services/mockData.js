@@ -345,7 +345,7 @@ export async function getPayoutRequests() {
   }));
 }
 
-export async function approvePayoutRequest(id) {
+export async function approvePayoutRequest(id, safeId = 'SAFE-001') {
   await supabase
     .from('payout_requests')
     .update({ status: 'Approved', processed_at: new Date(), note: 'تم الموافقة على التحويل بنجاح.' })
@@ -363,6 +363,16 @@ export async function approvePayoutRequest(id) {
       status: 'Completed',
       merchant_id: p.merchant_id
     });
+
+    if (safeId) {
+      await recordSafeTransaction({
+        safeId: safeId,
+        type: 'withdrawal',
+        amount: Number(p.amount),
+        description: `صرف طلب سحب رصيد للتاجر (${p.merchant_id})`,
+        ref: p.id
+      });
+    }
   }
   return getPayoutRequests();
 }
@@ -394,7 +404,7 @@ export async function getTransactionLog() {
   }));
 }
 
-export async function manualCredit(merchantId, amount, description, type = 'credit') {
+export async function manualCredit(merchantId, amount, description, type = 'credit', safeId = 'SAFE-001') {
   const amtVal = type === 'debit' ? -Math.abs(Number(amount)) : Math.abs(Number(amount));
   const defaultDesc = type === 'debit' ? 'تسوية / خصم يدوي من المحفظة' : 'إيداع يدوي في المحفظة';
   await supabase.from('transactions').insert({
@@ -405,6 +415,17 @@ export async function manualCredit(merchantId, amount, description, type = 'cred
     reference: 'MANUAL_SETTLEMENT',
     merchant_id: merchantId
   });
+
+  if (safeId) {
+    await recordSafeTransaction({
+      safeId: safeId,
+      type: type === 'debit' ? 'deposit' : 'withdrawal',
+      amount: Math.abs(Number(amount)),
+      description: `تسوية يدوي لمجموع المحفظة (${description || defaultDesc})`,
+      ref: 'MANUAL'
+    });
+  }
+
   return getTransactionLog();
 }
 
@@ -453,7 +474,7 @@ export async function editDriver(id, updatedData) {
   return getDrivers();
 }
 
-export async function settleDriver(driverId, amount, note) {
+export async function settleDriver(driverId, amount, note, safeId = 'SAFE-001') {
   const { data: d } = await supabase.from('drivers').select('*').eq('id', driverId).single();
   if (d) {
     const amountVal = Number(amount || 0);
@@ -476,6 +497,17 @@ export async function settleDriver(driverId, amount, note) {
       note: note || 'تسوية يدوية',
       status: 'Settled'
     });
+
+    // Record safe transaction
+    if (safeId) {
+      await recordSafeTransaction({
+        safeId: safeId,
+        type: 'deposit',
+        amount: amountVal,
+        description: `تسوية تحصيل COD نقدياً من السائق (${d.name})`,
+        ref: `STL-${Date.now()}`
+      });
+    }
   }
   return getDrivers();
 }
@@ -664,12 +696,136 @@ export async function saveEmployee(employee) {
   }
   
   localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(employees));
-  return employee;
+  return employees;
 }
 
 export async function deleteEmployee(id) {
   if (typeof window === 'undefined') return;
-  let employees = await getEmployees();
-  employees = employees.filter(e => e.id !== id);
-  localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(employees));
+  const employees = await getEmployees();
+  const filtered = employees.filter(e => e.id !== id);
+  localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(filtered));
+  return filtered;
+}
+
+// ─── Safes / Treasury System ──────────────────────────────────────────
+const SAFES_STORAGE_KEY = 'tamowil_safes_v1';
+const SAFES_TX_STORAGE_KEY = 'tamowil_safes_tx_v1';
+
+const DEFAULT_SAFES = [
+  { id: 'SAFE-001', name: 'الخزينة الرئيسية (المركز)', code: 'SAFE-MAIN', branch: 'المركز الرئيسي', balance: 15000, active: true, notes: 'خزينة السيولة النقدية الرئيسية' },
+  { id: 'SAFE-002', name: 'خزينة فرع طرابلس', code: 'SAFE-TRIPOLI', branch: 'طرابلس', balance: 8500, active: true, notes: 'خزينة استلام العهد اليومية' },
+  { id: 'SAFE-003', name: 'خزينة فرع بنغازي', code: 'SAFE-BEN', branch: 'بنغازي', balance: 5200, active: true, notes: 'خزينة التوصيل والتسويات' },
+  { id: 'SAFE-004', name: 'حساب المصرف / سداد', code: 'BANK-SADAD', branch: 'إلكتروني', balance: 12300, active: true, notes: 'حساب التحويلات المصرفية والسداد الإلكتروني' }
+];
+
+export async function getSafes() {
+  if (typeof window === 'undefined') return DEFAULT_SAFES;
+  const stored = localStorage.getItem(SAFES_STORAGE_KEY);
+  if (stored) {
+    return JSON.parse(stored);
+  }
+  localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(DEFAULT_SAFES));
+  return DEFAULT_SAFES;
+}
+
+export async function saveSafes(safes) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(safes));
+}
+
+export async function addSafe(safeData) {
+  const safes = await getSafes();
+  const newSafe = {
+    id: `SAFE-${Date.now()}`,
+    name: safeData.name,
+    code: safeData.code || `SAFE-${Math.floor(100 + Math.random() * 900)}`,
+    branch: safeData.branch || 'الفرع الرئيسي',
+    balance: Number(safeData.initialBalance || 0),
+    active: true,
+    notes: safeData.notes || ''
+  };
+  safes.push(newSafe);
+  await saveSafes(safes);
+
+  // Log initial balance transaction if > 0
+  if (newSafe.balance > 0) {
+    await recordSafeTransaction({
+      safeId: newSafe.id,
+      type: 'deposit',
+      amount: newSafe.balance,
+      description: 'الرصيد الافتتاحي عند إنشاء الخزينة',
+      ref: 'INITIAL'
+    });
+  }
+
+  return getSafes();
+}
+
+export async function getSafeTransactions() {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem(SAFES_TX_STORAGE_KEY);
+  if (stored) return JSON.parse(stored);
+  return [];
+}
+
+export async function recordSafeTransaction({ safeId, type, amount, description, ref }) {
+  const txs = await getSafeTransactions();
+  const safes = await getSafes();
+  
+  const safeIdx = safes.findIndex(s => s.id === safeId);
+  const amtVal = Math.abs(Number(amount || 0));
+
+  if (safeIdx !== -1) {
+    if (type === 'deposit' || type === 'transfer_in') {
+      safes[safeIdx].balance += amtVal;
+    } else if (type === 'withdrawal' || type === 'transfer_out') {
+      safes[safeIdx].balance = Math.max(0, safes[safeIdx].balance - amtVal);
+    }
+    await saveSafes(safes);
+  }
+
+  const safeObj = safes.find(s => s.id === safeId);
+  const newTx = {
+    id: `STX-${Date.now()}-${Math.floor(Math.random() * 100)}`,
+    safeId,
+    safeName: safeObj?.name || safeId,
+    type,
+    amount: amtVal,
+    description: description || 'معاملة خزينة',
+    ref: ref || 'SYS',
+    date: new Date().toISOString()
+  };
+
+  txs.unshift(newTx);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(SAFES_TX_STORAGE_KEY, JSON.stringify(txs));
+  }
+  return txs;
+}
+
+export async function transferBetweenSafes(fromSafeId, toSafeId, amount, note) {
+  const amtVal = Number(amount || 0);
+  if (amtVal <= 0 || fromSafeId === toSafeId) return;
+
+  const safes = await getSafes();
+  const fromSafe = safes.find(s => s.id === fromSafeId);
+  const toSafe = safes.find(s => s.id === toSafeId);
+
+  await recordSafeTransaction({
+    safeId: fromSafeId,
+    type: 'transfer_out',
+    amount: amtVal,
+    description: `تحويل صادرة إلى (${toSafe?.name || toSafeId}) - ${note || ''}`,
+    ref: 'TRANSFER'
+  });
+
+  await recordSafeTransaction({
+    safeId: toSafeId,
+    type: 'transfer_in',
+    amount: amtVal,
+    description: `تحويل واردة من (${fromSafe?.name || fromSafeId}) - ${note || ''}`,
+    ref: 'TRANSFER'
+  });
+
+  return getSafes();
 }

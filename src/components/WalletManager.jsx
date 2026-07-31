@@ -54,6 +54,7 @@ export default function WalletManager() {
     merchants,
     transactionLog: txLog,
     shipmentsList,
+    safes,
     approvePayoutRequest,
     rejectPayoutRequest,
     manualCredit
@@ -68,7 +69,8 @@ export default function WalletManager() {
   const [rejectNote, setRejectNote]   = useState('');
   const [selectedMerchant, setSelectedMerchant] = useState(null);
   const [showManual, setShowManual]   = useState(false);
-  const [manualForm, setManualForm]   = useState({ merchantId: '', amount: '', type: 'credit', description: '' });
+  const [manualForm, setManualForm]   = useState({ merchantId: '', amount: '', type: 'credit', description: '', safeId: 'SAFE-001' });
+  const [selectedSafeId, setSelectedSafeId]   = useState('SAFE-001');
   const [printMode, setPrintMode]     = useState(null); // 'payouts' | 'wallet'
 
   const handlePrint = (mode) => {
@@ -130,8 +132,8 @@ export default function WalletManager() {
 
   // ── Actions ───────────────────────────────────────────────────
   function doApprove(id) {
-    approvePayoutRequest(id);
-    setConfirmId(null); setRejectNote('');
+    approvePayoutRequest(id, selectedSafeId || 'SAFE-001');
+    setConfirmId(null);
   }
   function doReject(id) {
     rejectPayoutRequest(id);
@@ -140,8 +142,8 @@ export default function WalletManager() {
   function doManualCredit(e) {
     e.preventDefault();
     if (!manualForm.merchantId || !manualForm.amount) return;
-    manualCredit(manualForm.merchantId, manualForm.amount, manualForm.description, manualForm.type || 'credit');
-    setManualForm({ merchantId: '', amount: '', type: 'credit', description: '' });
+    manualCredit(manualForm.merchantId, manualForm.amount, manualForm.description, manualForm.type || 'credit', manualForm.safeId || 'SAFE-001');
+    setManualForm({ merchantId: '', amount: '', type: 'credit', description: '', safeId: 'SAFE-001' });
     setShowManual(false);
   }
 
@@ -506,6 +508,17 @@ export default function WalletManager() {
               </p>
             </div>
 
+            {confirmAction === 'approve' && (
+              <div style={{ marginBottom: '16px', textAlign: 'right' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  {isAr ? 'الخزينة المخصصة للصرف منها' : 'Source Safe for Payout'}
+                </label>
+                <select className="glass-input w-full" value={selectedSafeId} onChange={e => setSelectedSafeId(e.target.value)}>
+                  {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name} ({s.branch}) - رصيد: {s.balance} د.ل</option>)}
+                </select>
+              </div>
+            )}
+
             {confirmAction === 'reject' && (
               <textarea
                 placeholder={isAr ? 'سبب الرفض (اختياري)...' : 'Rejection reason (optional)...'}
@@ -544,6 +557,14 @@ export default function WalletManager() {
               </div>
             </div>
             <form onSubmit={doManualCredit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  {isAr ? 'الخزينة المحددة للمعاملة' : 'Associated Safe'}
+                </label>
+                <select className="glass-input w-full" value={manualForm.safeId} onChange={e => setManualForm(p => ({ ...p, safeId: e.target.value }))}>
+                  {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name} ({s.branch}) - رصيد: {s.balance} د.ل</option>)}
+                </select>
+              </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                   {isAr ? 'نوع التسوية' : 'Settlement Type'}

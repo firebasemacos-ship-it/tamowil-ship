@@ -112,6 +112,9 @@ export function AppProvider({ children }) {
     document.documentElement.setAttribute('lang', lang);
   }, [theme, lang]);
 
+  const [safes, setSafes] = useState([]);
+  const [safeTransactions, setSafeTransactions] = useState([]);
+
   // Load all Supabase data
   const refreshAllData = async () => {
     try {
@@ -125,7 +128,9 @@ export function AppProvider({ children }) {
         pricingData,
         ticketsData,
         statsData,
-        employeesData
+        employeesData,
+        safesData,
+        safeTxsData
       ] = await Promise.all([
         db.getShipments(),
         db.getUsers(),
@@ -136,7 +141,9 @@ export function AppProvider({ children }) {
         db.getCityPricing(),
         db.getTickets(),
         db.getDashboardStats(),
-        db.getEmployees()
+        db.getEmployees(),
+        db.getSafes(),
+        db.getSafeTransactions()
       ]);
 
       setShipmentsList(shipmentsData);
@@ -149,6 +156,8 @@ export function AppProvider({ children }) {
       setTickets(ticketsData);
       setDashboardStats(statsData);
       setEmployees(employeesData);
+      setSafes(safesData);
+      setSafeTransactions(safeTxsData);
     } catch (e) {
       console.error('Error refreshing data from Supabase:', e);
     } finally {
@@ -332,6 +341,8 @@ export function AppProvider({ children }) {
       driverSettlements: filteredSettlements,
       cityPricing,
       tickets: filteredTickets,
+      safes,
+      safeTransactions,
       dashboardStats: computedStats,
       refreshAllData,
 
@@ -354,6 +365,8 @@ export function AppProvider({ children }) {
       toggleCityActive: wrapAction(db.toggleCityActive),
       addCity: wrapAction(db.addCity),
       deleteCity: wrapAction(db.deleteCity),
+      addSafe: wrapAction(db.addSafe),
+      transferBetweenSafes: wrapAction(db.transferBetweenSafes),
       updateTicketStatus: wrapAction(db.updateTicketStatus),
       addTicketReply: wrapAction(db.addTicketReply)
     }}>

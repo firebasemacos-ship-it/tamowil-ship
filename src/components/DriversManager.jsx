@@ -67,6 +67,7 @@ export default function DriversManager() {
     drivers,
     shipmentsList: shipments,
     driverSettlements: settlements,
+    safes,
     addDriver,
     editDriver,
     deleteDriver,
@@ -86,7 +87,7 @@ export default function DriversManager() {
   const [editModal, setEditModal]     = useState(null); // driver object
   const [driverProfileModal, setDriverProfileModal] = useState(null); // driver object
   const [driverProfileTab, setDriverProfileTab] = useState('shipments'); // 'shipments' | 'transactions'
-  const [settleForm, setSettleForm]   = useState({ amount: '', note: '' });
+  const [settleForm, setSettleForm]   = useState({ amount: '', note: '', safeId: 'SAFE-001' });
   const [expandDriver, setExpand]     = useState(null);
   const [form, setForm]               = useState({ name: '', phone: '', zone: '', password: '' });
 
@@ -131,9 +132,9 @@ export default function DriversManager() {
   function handleSettle(e) {
     e.preventDefault();
     if (!settleModal || !settleForm.amount) return;
-    settleDriver(settleModal.id, parseFloat(settleForm.amount), settleForm.note);
+    settleDriver(settleModal.id, parseFloat(settleForm.amount), settleForm.note, settleForm.safeId || 'SAFE-001');
     setSettleModal(null);
-    setSettleForm({ amount: '', note: '' });
+    setSettleForm({ amount: '', note: '', safeId: 'SAFE-001' });
   }
 
   function handlePrint() {
@@ -562,6 +563,14 @@ export default function DriversManager() {
             </div>
 
             <form onSubmit={handleSettle} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  {isAr ? 'الخزينة المستلمة' : 'Receiving Safe'}
+                </label>
+                <select className="glass-input w-full" value={settleForm.safeId} onChange={e => setSettleForm(p => ({ ...p, safeId: e.target.value }))}>
+                  {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name} ({s.branch})</option>)}
+                </select>
+              </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                   {isAr ? 'المبلغ المُسلَّم (د.ل)' : 'Amount Received (LYD)'}

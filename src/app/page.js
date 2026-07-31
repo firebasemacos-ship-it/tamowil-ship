@@ -12,6 +12,7 @@ import WalletManager  from '@/components/WalletManager';
 import DriversManager from '@/components/DriversManager';
 import PricingManager from '@/components/PricingManager';
 import ReportsView    from '@/components/ReportsView';
+import SafesManager  from '@/components/SafesManager';
 import GlobalDateFilter from '@/components/GlobalDateFilter';
 
 export default function AdminPage() {
@@ -87,6 +88,7 @@ export default function AdminPage() {
     <TicketsList />,
     <PricingManager />,
     <ReportsView />,
+    <SafesManager />,
     <EmployeesManager />,
   ];
 
