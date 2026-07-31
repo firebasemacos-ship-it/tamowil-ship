@@ -83,7 +83,7 @@ function InfoCard({ title, color, icon, rows }) {
    Main Component
 ───────────────────────────────────────────── */
 export default function ShipmentsTable() {
-  const { lang, shipmentsList, merchants, updateShipmentStatus, addShipment, editShipment, deleteShipment, assignDriverToShipment, drivers, theme } = useApp();
+  const { lang, shipmentsList, merchants, updateShipmentStatus, addShipment, editShipment, deleteShipment, assignDriverToShipment, drivers, cityPricing, theme } = useApp();
   const isAr = lang === 'ar';
   const isDark = theme === 'dark';
 
@@ -889,10 +889,10 @@ export default function ShipmentsTable() {
                 {[
                   { key: 'senderName',    labelAr: 'اسم المرسل',         labelEn: 'Sender Name' },
                   { key: 'senderPhone',   labelAr: 'هاتف المرسل',        labelEn: 'Sender Phone' },
-                  { key: 'senderCity',    labelAr: 'مدينة المرسل',       labelEn: 'Sender City' },
+                  { key: 'senderCity',    labelAr: 'مدينة المرسل',       labelEn: 'Sender City', isCity: true },
                   { key: 'receiverName',  labelAr: 'اسم المستلم',        labelEn: 'Receiver Name' },
                   { key: 'receiverPhone', labelAr: 'هاتف المستلم',       labelEn: 'Receiver Phone' },
-                  { key: 'receiverCity',  labelAr: 'مدينة المستلم',      labelEn: 'Receiver City' },
+                  { key: 'receiverCity',  labelAr: 'مدينة المستلم (نسخ الرسوم تلقائياً)', labelEn: 'Receiver City (Auto Price)', isCity: true, isReceiverCity: true },
                   { key: 'productPrice',  labelAr: 'سعر المنتج (د.ل)',   labelEn: 'Product Price (LYD)', type: 'number' },
                   { key: 'deliveryFee',   labelAr: 'رسوم التوصيل (د.ل)', labelEn: 'Delivery Fee (LYD)', type: 'number' },
                   { key: 'codFee',        labelAr: 'رسوم التحصيل (د.ل)', labelEn: 'COD Fee (LYD)', type: 'number' },
@@ -901,8 +901,38 @@ export default function ShipmentsTable() {
                     <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>
                       {isAr ? f.labelAr : f.labelEn}
                     </label>
-                    <input required className="glass-input" type={f.type || 'text'}
-                      value={createForm[f.key]} onChange={e => setCreateForm(p => ({ ...p, [f.key]: e.target.value }))} />
+                    {f.isCity ? (
+                      <select 
+                        required 
+                        className="glass-input w-full"
+                        style={{ padding: '8px 10px', fontSize: 13 }}
+                        value={createForm[f.key]} 
+                        onChange={e => {
+                          const cityName = e.target.value;
+                          if (f.isReceiverCity) {
+                            const matched = (cityPricing || []).find(c => c.city === cityName);
+                            setCreateForm(p => ({
+                              ...p,
+                              receiverCity: cityName,
+                              deliveryFee: matched ? String(matched.fee ?? 0) : p.deliveryFee,
+                              codFee: matched ? String(matched.codFee ?? 0) : p.codFee
+                            }));
+                          } else {
+                            setCreateForm(p => ({ ...p, [f.key]: cityName }));
+                          }
+                        }}
+                      >
+                        <option value="">{isAr ? '-- اختر المدينة --' : '-- Select City --'}</option>
+                        {(cityPricing || []).filter(c => c.active).map(c => (
+                          <option key={c.city} value={c.city}>
+                            {c.city} ({c.fee + c.codFee} د.ل)
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input required className="glass-input" type={f.type || 'text'}
+                        value={createForm[f.key]} onChange={e => setCreateForm(p => ({ ...p, [f.key]: e.target.value }))} />
+                    )}
                   </div>
                 ))}
               </div>
