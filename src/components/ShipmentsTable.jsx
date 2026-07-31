@@ -125,6 +125,48 @@ export default function ShipmentsTable() {
   const [bulkSelectedStatus, setBulkSelectedStatus] = useState('In Warehouse');
   const [isProcessingBulkModal, setIsProcessingBulkModal] = useState(false);
 
+  const [customStatusesList, setCustomStatusesList] = useState([
+    { key: 'Registered', ar: 'مسجلة', en: 'Registered' },
+    { key: 'In Warehouse', ar: 'في المستودع', en: 'In Warehouse' },
+    { key: 'Out for Delivery', ar: 'خارج للتوصيل', en: 'Out for Delivery' },
+    { key: 'Delivered', ar: 'تم التسليم', en: 'Delivered' },
+    { key: 'Returned', ar: 'مرتجعة', en: 'Returned' },
+    { key: 'Cancelled', ar: 'ملغاة', en: 'Cancelled' },
+  ]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('vanex_custom_statuses_list');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCustomStatusesList(parsed);
+        }
+      } catch (e) {}
+    }
+  }, []);
+
+  const [showAddCustomStatusModal, setShowAddCustomStatusModal] = useState(false);
+  const [newCustomStatusAr, setNewCustomStatusAr] = useState('');
+  const [newCustomStatusEn, setNewCustomStatusEn] = useState('');
+
+  const handleSaveCustomStatus = () => {
+    if (!newCustomStatusAr.trim()) return;
+    const keyName = newCustomStatusEn.trim() || newCustomStatusAr.trim();
+    const newEntry = {
+      key: keyName,
+      ar: newCustomStatusAr.trim(),
+      en: newCustomStatusEn.trim() || newCustomStatusAr.trim()
+    };
+    const updated = [...customStatusesList, newEntry];
+    setCustomStatusesList(updated);
+    localStorage.setItem('vanex_custom_statuses_list', JSON.stringify(updated));
+    setNewCustomStatusAr('');
+    setNewCustomStatusEn('');
+    setShowAddCustomStatusModal(false);
+    alert(isAr ? `تمت إضافة حالة الشحنة الجديدة (${newEntry.ar}) وحفظها بالنظام!` : `Added new status (${newEntry.en})!`);
+  };
+
   const handleExecuteModalBulkUpdate = async () => {
     let targets = [];
     if (bulkInputTrackings.trim()) {
@@ -262,13 +304,20 @@ export default function ShipmentsTable() {
   };
 
 
-  const statusLabel = (status) => isAr
-    ? (status === 'Registered' ? 'مسجلة'
-      : status === 'In Warehouse' ? 'في المستودع'
-      : status === 'Out for Delivery' ? 'خارج للتوصيل'
-      : status === 'Returned' ? 'مرتجعة'
-      : 'تم التسليم')
-    : status;
+  const statusLabel = (status) => {
+    if (!status) return '';
+    const match = customStatusesList.find(c => c.key === status || c.ar === status || c.en === status);
+    if (match) return isAr ? match.ar : match.en;
+    if (isAr) {
+      if (status === 'Registered') return 'مسجلة';
+      if (status === 'In Warehouse') return 'في المستودع';
+      if (status === 'Out for Delivery') return 'خارج للتوصيل';
+      if (status === 'Returned') return 'مرتجعة';
+      if (status === 'Cancelled') return 'ملغاة';
+      if (status === 'Delivered') return 'تم التسليم';
+    }
+    return status;
+  };
 
   const filteredShipments = shipmentsList.filter(s => {
     const q = searchQuery.toLowerCase();
@@ -352,6 +401,10 @@ export default function ShipmentsTable() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button className="glass-button" style={{ backgroundColor: 'rgba(99, 102, 241, 0.18)', borderColor: 'rgba(99, 102, 241, 0.4)', color: '#818CF8', fontWeight: 'bold' }} onClick={() => setShowAddCustomStatusModal(true)}>
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            {isAr ? '➕ إضافة حالة جديدة' : '➕ Add Custom Status'}
+          </button>
           <button className="glass-button" style={{ backgroundColor: 'rgba(16, 185, 129, 0.18)', borderColor: 'rgba(16, 185, 129, 0.4)', color: '#10B981', fontWeight: 'bold' }} onClick={() => setShowBulkStatusModal(true)}>
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
             {isAr ? '⚡ تحديث الشحنات الجماعي' : '⚡ Bulk Status Update'}
@@ -371,13 +424,11 @@ export default function ShipmentsTable() {
             value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
         </div>
         <div style={{ display: 'flex', gap: 16 }}>
-          <select className="glass-input" style={{ width: 150 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <select className="glass-input" style={{ width: 160 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="All">{isAr ? 'كل الحالات' : 'All Statuses'}</option>
-            <option value="Registered">{isAr ? 'مسجلة' : 'Registered'}</option>
-            <option value="In Warehouse">{isAr ? 'في المستودع' : 'In Warehouse'}</option>
-            <option value="Out for Delivery">{isAr ? 'خارج للتوصيل' : 'Out for Delivery'}</option>
-            <option value="Delivered">{isAr ? 'تم التسليم' : 'Delivered'}</option>
-            <option value="Returned">{isAr ? 'مرتجعة' : 'Returned'}</option>
+            {customStatusesList.map(st => (
+              <option key={st.key} value={st.key}>{isAr ? st.ar : st.en}</option>
+            ))}
           </select>
           <select className="glass-input" style={{ width: 150 }} value={cityFilter} onChange={e => setCityFilter(e.target.value)}>
             <option value="All">{isAr ? 'كل المدن' : 'All Cities'}</option>
@@ -1425,12 +1476,9 @@ export default function ShipmentsTable() {
                   {isAr ? '1. اختر الحالة الجديدة المراد تطبيقها:' : '1. Select target status:'}
                 </label>
                 <select className="glass-input w-full" style={{ padding: '10px 14px', fontSize: 14, fontWeight: 'bold' }} value={bulkSelectedStatus} onChange={e => setBulkSelectedStatus(e.target.value)}>
-                  <option value="Registered">{isAr ? '🟡 قيد الانتظار (Registered)' : 'Registered'}</option>
-                  <option value="In Warehouse">{isAr ? '🔵 في المستودع (In Warehouse)' : 'In Warehouse'}</option>
-                  <option value="Out for Delivery">{isAr ? '🟠 قيد التوصيل (Out for Delivery)' : 'Out for Delivery'}</option>
-                  <option value="Delivered">{isAr ? '🟢 تم التسليم (Delivered)' : 'Delivered'}</option>
-                  <option value="Returned">{isAr ? '🔴 مرتجعة (Returned)' : 'Returned'}</option>
-                  <option value="Cancelled">{isAr ? '⚪ ملغاة (Cancelled)' : 'Cancelled'}</option>
+                  {customStatusesList.map(st => (
+                    <option key={st.key} value={st.key}>{isAr ? st.ar : st.en}</option>
+                  ))}
                 </select>
               </div>
 
@@ -1465,6 +1513,65 @@ export default function ShipmentsTable() {
                 <button
                   onClick={() => setShowBulkStatusModal(false)}
                   disabled={isProcessingBulkModal}
+                  className="glass-button secondary py-2.5"
+                >
+                  {isAr ? 'إلغاء' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Custom Status Modal */}
+      {showAddCustomStatusModal && (
+        <div className="modal-overlay" onClick={() => setShowAddCustomStatusModal(false)}>
+          <div className="modal-content glass-card" style={{ maxWidth: 450, width: '90%' }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4 pb-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <h2 className="title-medium" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                <span>➕</span>
+                {isAr ? 'إضافة حالة شحنة مخصصة جديدة' : 'Add Custom Shipment Status'}
+              </h2>
+              <button onClick={() => setShowAddCustomStatusModal(false)} className="text-gray-400 hover:text-white" style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-secondary)' }}>
+                  {isAr ? 'اسم الحالة بالعربية:' : 'Status Name in Arabic:'}
+                </label>
+                <input
+                  type="text"
+                  className="glass-input w-full"
+                  placeholder={isAr ? 'مثال: في مركز التوزيع الإقليمي' : 'e.g. In Regional Sorting Center'}
+                  value={newCustomStatusAr}
+                  onChange={e => setNewCustomStatusAr(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-secondary)' }}>
+                  {isAr ? 'اسم الحالة بالإنجليزية (اختياري):' : 'Status Name in English (Optional):'}
+                </label>
+                <input
+                  type="text"
+                  className="glass-input w-full"
+                  placeholder={isAr ? 'مثال: Regional Hub' : 'e.g. Regional Hub'}
+                  value={newCustomStatusEn}
+                  onChange={e => setNewCustomStatusEn(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-3 mt-4 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <button
+                  onClick={handleSaveCustomStatus}
+                  className="glass-button primary flex-1 justify-center py-2.5"
+                  style={{ backgroundColor: '#6366F1', color: '#FFF', borderColor: 'transparent', fontWeight: 'bold' }}
+                >
+                  {isAr ? 'حفظ الحالة بالنظام' : 'Save Status'}
+                </button>
+                <button
+                  onClick={() => setShowAddCustomStatusModal(false)}
                   className="glass-button secondary py-2.5"
                 >
                   {isAr ? 'إلغاء' : 'Cancel'}
