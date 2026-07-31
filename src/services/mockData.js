@@ -221,15 +221,15 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
         });
       }
 
-      // 2. Automatically Transfer Value to Main Safe (SAFE-001)
+      // 2. Automatically Record Value into Drivers Custody Safe (SAFE-005)
       const safeTxs = await getSafeTransactions();
       const alreadySafeRecorded = safeTxs.some(t => t.ref === trackingNumber && t.type === 'deposit');
       if (!alreadySafeRecorded && collectedAmt > 0) {
         await recordSafeTransaction({
-          safeId: 'SAFE-001',
+          safeId: 'SAFE-005',
           type: 'deposit',
           amount: collectedAmt,
-          description: `إيداع نقدية تحصيل شحنة مسلّمة (${trackingNumber})`,
+          description: `عُهدة ميدانية مع السائق - تحصيل شحنة مسلّمة (${trackingNumber})`,
           ref: trackingNumber
         });
       }
@@ -514,13 +514,22 @@ export async function settleDriver(driverId, amount, note, safeId = 'SAFE-001') 
       status: 'Settled'
     });
 
-    // Record safe transaction
+    // 1. Deduct settled amount from Drivers Custody Safe (SAFE-005)
+    await recordSafeTransaction({
+      safeId: 'SAFE-005',
+      type: 'withdrawal',
+      amount: amountVal,
+      description: `تفريغ عُهدة نقدية وتصفية حساب مع السائق (${d.name})`,
+      ref: `STL-${Date.now()}`
+    });
+
+    // 2. Deposit settled amount into Target Main/Branch Safe
     if (safeId) {
       await recordSafeTransaction({
         safeId: safeId,
         type: 'deposit',
         amount: amountVal,
-        description: `تسوية تحصيل COD نقدياً من السائق (${d.name})`,
+        description: `استلام تسوية عُهدة نقدية من السائق (${d.name})`,
         ref: `STL-${Date.now()}`
       });
     }
@@ -728,7 +737,8 @@ const SAFES_STORAGE_KEY = 'tamowil_safes_v1';
 const SAFES_TX_STORAGE_KEY = 'tamowil_safes_tx_v1';
 
 const DEFAULT_SAFES = [
-  { id: 'SAFE-001', name: 'الخزينة الرئيسية (المركز)', code: 'SAFE-MAIN', branch: 'المركز الرئيسي', initialBalance: 0, balance: 0, active: true, notes: 'خزينة السيولة النقدية الرئيسية' },
+  { id: 'SAFE-001', name: 'الخزينة الرئيسية (المركز)', code: 'SAFE-MAIN', branch: 'المركز الرئيسي', initialBalance: 0, balance: 0, active: true, notes: 'خزينة السيولة النقدية الرئيسية في المقر' },
+  { id: 'SAFE-005', name: 'خزينة عُهد السائقين (العهد الميدانية)', code: 'SAFE-DRIVERS', branch: 'ميداني / السائقين', initialBalance: 0, balance: 0, active: true, notes: 'إجمالي المبالغ النقدية المتداولة كـ عُهد مع السائقين قبل التسوية' },
   { id: 'SAFE-002', name: 'خزينة فرع طرابلس', code: 'SAFE-TRIPOLI', branch: 'طرابلس', initialBalance: 0, balance: 0, active: true, notes: 'خزينة استلام العهد اليومية' },
   { id: 'SAFE-003', name: 'خزينة فرع بنغازي', code: 'SAFE-BEN', branch: 'بنغازي', initialBalance: 0, balance: 0, active: true, notes: 'خزينة التوصيل والتسويات' },
   { id: 'SAFE-004', name: 'حساب المصرف / سداد', code: 'BANK-SADAD', branch: 'إلكتروني', initialBalance: 0, balance: 0, active: true, notes: 'حساب التحويلات المصرفية والسداد الإلكتروني' }
@@ -747,6 +757,11 @@ export async function getSafes() {
   const stored = localStorage.getItem(SAFES_STORAGE_KEY);
   if (stored) {
     safes = JSON.parse(stored);
+    // Ensure SAFE-005 exists if user had old localStorage
+    if (!safes.some(s => s.id === 'SAFE-005')) {
+      safes.splice(1, 0, DEFAULT_SAFES[1]);
+      localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(safes));
+    }
   } else {
     safes = DEFAULT_SAFES;
     localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(DEFAULT_SAFES));
@@ -754,7 +769,7 @@ export async function getSafes() {
 
   let txs = await getSafeTransactions();
 
-  // Auto-sync all delivered shipments from Supabase to SAFE-001 if missing
+  // Auto-sync all delivered shipments from Supabase to SAFE-005 (Drivers Custody Safe) if missing
   try {
     const { data: deliveredShipments } = await supabase
       .from('shipments')
@@ -763,7 +778,7 @@ export async function getSafes() {
 
     if (deliveredShipments && deliveredShipments.length > 0) {
       let newlyRecorded = false;
-      const safeObj = safes.find(s => s.id === 'SAFE-001');
+      const safeObj = safes.find(s => s.id === 'SAFE-005');
       for (const sh of deliveredShipments) {
         const trk = sh.tracking_number;
         const alreadyRecorded = txs.some(t => t.ref === trk && t.type === 'deposit');
@@ -772,11 +787,11 @@ export async function getSafes() {
           if (amt > 0) {
             const newTx = {
               id: `STX-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-              safeId: 'SAFE-001',
-              safeName: safeObj?.name || 'الخزينة الرئيسية (المركز)',
+              safeId: 'SAFE-005',
+              safeName: safeObj?.name || 'خزينة عُهد السائقين (العهد الميدانية)',
               type: 'deposit',
               amount: amt,
-              description: `تحصيل نقدية شحنة مسلّمة (${trk})`,
+              description: `عُهدة ميدانية مع السائق - شحنة مسلّمة (${trk})`,
               ref: trk,
               date: new Date().toISOString()
             };
