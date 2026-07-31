@@ -524,6 +524,12 @@ export async function toggleCityActive(city) {
   return getCityPricing();
 }
 
+export async function deleteDriver(id) {
+  const { error } = await supabase.from('drivers').delete().eq('id', id);
+  if (error) console.error('deleteDriver error:', error);
+  return getDrivers();
+}
+
 export async function addCity(city, fee, codFee) {
   await supabase.from('city_pricing').insert({
     city,
@@ -531,6 +537,12 @@ export async function addCity(city, fee, codFee) {
     cod_fee: Number(codFee),
     active: true
   });
+  return getCityPricing();
+}
+
+export async function deleteCity(cityName) {
+  const { error } = await supabase.from('city_pricing').delete().eq('city', cityName);
+  if (error) console.error('deleteCity error:', error);
   return getCityPricing();
 }
 

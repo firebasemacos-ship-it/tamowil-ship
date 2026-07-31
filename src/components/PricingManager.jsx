@@ -3,9 +3,10 @@ import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 
 export default function PricingManager() {
-  const { lang, cityPricing: pricing, updateCityFee, toggleCityActive, addCity } = useApp();
+  const { lang, cityPricing: pricing, updateCityFee, toggleCityActive, addCity, deleteCity } = useApp();
   const isAr = lang === 'ar';
 
+  const [searchQuery, setSearchQuery] = useState('');
   const [editing, setEditing] = useState(null); // city name being edited
   const [editFee, setEditFee] = useState('');
   const [editCodFee, setEditCodFee] = useState('');
@@ -24,6 +25,10 @@ export default function PricingManager() {
     setNewCity(''); setNewFee(''); setNewCodFee('');
     setShowAdd(false);
   }
+
+  const filteredPricing = pricing.filter(c => 
+    c.city.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const activeCount   = pricing.filter(c => c.active).length;
   const avgFee        = Math.round(pricing.filter(c => c.active).reduce((s, c) => s + c.fee, 0) / (activeCount || 1));
@@ -47,6 +52,21 @@ export default function PricingManager() {
             {isAr ? 'إضافة مدينة' : 'Add City'}
           </button>
         </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="glass-card flex items-center justify-between" style={{ padding: '14px 18px' }}>
+        <input 
+          type="text" 
+          className="glass-input w-full" 
+          placeholder={isAr ? 'ابحث باسم المدينة...' : 'Search by city name...'} 
+          value={searchQuery} 
+          onChange={e => setSearchQuery(e.target.value)} 
+          style={{ maxWidth: 400 }}
+        />
+        <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+          {isAr ? `إجمالي المدن المفلترة: ${filteredPricing.length}` : `Filtered cities: ${filteredPricing.length}`}
+        </span>
       </div>
 
       {/* Stats */}
@@ -92,7 +112,7 @@ export default function PricingManager() {
             </tr>
           </thead>
           <tbody>
-            {pricing.map(c => (
+            {filteredPricing.map(c => (
               <tr key={c.city} style={{ opacity: c.active ? 1 : 0.5 }}>
                 <td style={{ fontWeight: 700 }}>{c.city}</td>
                 <td>
@@ -122,9 +142,21 @@ export default function PricingManager() {
                       <button onClick={() => setEditing(null)} style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '11px', cursor: 'pointer' }}>{isAr ? 'إلغاء' : 'Cancel'}</button>
                     </div>
                   ) : (
-                    <button onClick={() => startEdit(c)} style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '11px', cursor: 'pointer' }}>
-                      <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{display:'inline',marginInlineEnd:'4px'}}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> {isAr ? 'تعديل' : 'Edit'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button onClick={() => startEdit(c)} style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '11px', cursor: 'pointer' }}>
+                        <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{display:'inline',marginInlineEnd:'4px'}}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> {isAr ? 'تعديل' : 'Edit'}
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (confirm(isAr ? `هل أنت متأكد من حذف مدينة (${c.city})؟` : `Delete city ${c.city}?`)) {
+                            deleteCity(c.city);
+                          }
+                        }} 
+                        style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)', color: '#EF4444', fontWeight: 600, fontSize: '11px', cursor: 'pointer' }}
+                      >
+                        {isAr ? 'حذف' : 'Delete'}
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>

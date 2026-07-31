@@ -347,11 +347,13 @@ export function AppProvider({ children }) {
       manualCredit: wrapAction(db.manualCredit),
       addDriver: wrapAction(db.addDriver),
       editDriver: wrapAction(db.editDriver),
+      deleteDriver: wrapAction(db.deleteDriver),
       toggleDriverStatus: wrapAction(db.toggleDriverStatus),
       settleDriver: wrapAction(db.settleDriver),
       updateCityFee: wrapAction(db.updateCityFee),
       toggleCityActive: wrapAction(db.toggleCityActive),
       addCity: wrapAction(db.addCity),
+      deleteCity: wrapAction(db.deleteCity),
       updateTicketStatus: wrapAction(db.updateTicketStatus),
       addTicketReply: wrapAction(db.addTicketReply)
     }}>
