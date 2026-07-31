@@ -191,8 +191,8 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
     details_en: detailsEn || `Shipment status updated to ${newStatus}`
   });
 
-  // When delivered, record COD in merchant transactions if applicable
-  if (newStatus === 'Delivered') {
+  // When delivered, record COD in merchant transactions and auto deposit to Main Safe (SAFE-001)
+  if (newStatus === 'Delivered' || newStatus === 'تم التسليم') {
     const { data: sh } = await supabase
       .from('shipments')
       .select('*')
@@ -200,6 +200,9 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
       .single();
 
     if (sh) {
+      const collectedAmt = Number(sh.price || 0) || (Number(sh.product_price || 0) + Number(sh.delivery_fee || 0) + Number(sh.cod_fee || 0));
+
+      // 1. Record Merchant Credit Transaction
       const { data: existingTx } = await supabase
         .from('transactions')
         .select('id')
@@ -218,7 +221,20 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
         });
       }
 
-      // Update driver cod collected if driver is assigned
+      // 2. Automatically Transfer Value to Main Safe (SAFE-001)
+      const safeTxs = await getSafeTransactions();
+      const alreadySafeRecorded = safeTxs.some(t => t.ref === trackingNumber && t.type === 'deposit');
+      if (!alreadySafeRecorded && collectedAmt > 0) {
+        await recordSafeTransaction({
+          safeId: 'SAFE-001',
+          type: 'deposit',
+          amount: collectedAmt,
+          description: `إيداع نقدية تحصيل شحنة مسلّمة (${trackingNumber})`,
+          ref: trackingNumber
+        });
+      }
+
+      // 3. Update driver cod collected if driver is assigned
       if (sh.assigned_driver_id) {
         const { data: drv } = await supabase
           .from('drivers')
@@ -729,8 +745,43 @@ export async function getSafes() {
     localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(DEFAULT_SAFES));
   }
 
+  let txs = await getSafeTransactions();
+
+  // Auto-sync all delivered shipments from Supabase to SAFE-001 if missing
+  try {
+    const { data: deliveredShipments } = await supabase
+      .from('shipments')
+      .select('tracking_number, price, product_price, delivery_fee, cod_fee, status')
+      .in('status', ['Delivered', 'تم التسليم']);
+
+    if (deliveredShipments && deliveredShipments.length > 0) {
+      let newlyRecorded = false;
+      for (const sh of deliveredShipments) {
+        const trk = sh.tracking_number;
+        const alreadyRecorded = txs.some(t => t.ref === trk && t.type === 'deposit');
+        if (!alreadyRecorded) {
+          const amt = Number(sh.price || 0) || (Number(sh.product_price || 0) + Number(sh.delivery_fee || 0) + Number(sh.cod_fee || 0));
+          if (amt > 0) {
+            await recordSafeTransaction({
+              safeId: 'SAFE-001',
+              type: 'deposit',
+              amount: amt,
+              description: `تحصيل نقدية شحنة مسلّمة (${trk})`,
+              ref: trk
+            });
+            newlyRecorded = true;
+          }
+        }
+      }
+      if (newlyRecorded) {
+        txs = await getSafeTransactions();
+      }
+    }
+  } catch (err) {
+    console.warn('Sync delivered shipments to safes error:', err);
+  }
+
   // Recalculate real dynamic balance from actual logged safe transactions
-  const txs = await getSafeTransactions();
   return safes.map(s => {
     const safeTxs = txs.filter(t => t.safeId === s.id);
     const deposits = safeTxs
