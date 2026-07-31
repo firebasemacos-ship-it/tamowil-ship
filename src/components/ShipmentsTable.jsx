@@ -405,10 +405,6 @@ export default function ShipmentsTable() {
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
             {isAr ? '➕ إضافة حالة جديدة' : '➕ Add Custom Status'}
           </button>
-          <button className="glass-button" style={{ backgroundColor: 'rgba(16, 185, 129, 0.18)', borderColor: 'rgba(16, 185, 129, 0.4)', color: '#10B981', fontWeight: 'bold' }} onClick={() => setShowBulkStatusModal(true)}>
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-            {isAr ? '⚡ تحديث الشحنات الجماعي' : '⚡ Bulk Status Update'}
-          </button>
           <button className="glass-button" onClick={() => setShowCreate(true)}>
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
             {isAr ? 'إنشاء شحنة يدوياً' : 'Create Shipment'}
@@ -456,12 +452,9 @@ export default function ShipmentsTable() {
             {/* Bulk Status Update */}
             <select className="glass-input" style={{ width: 140, padding: '6px 10px', fontSize: 12 }} value={bulkStatus} onChange={e => setBulkStatus(e.target.value)}>
               <option value="">{isAr ? 'تغيير الحالة...' : 'Change status...'}</option>
-              <option value="Registered">{isAr ? 'قيد الانتظار' : 'Registered'}</option>
-              <option value="In Warehouse">{isAr ? 'في المخزن' : 'In Warehouse'}</option>
-              <option value="Out for Delivery">{isAr ? 'قيد التوصيل' : 'Out for Delivery'}</option>
-              <option value="Delivered">{isAr ? 'تم التوصيل' : 'Delivered'}</option>
-              <option value="Returned">{isAr ? 'مرتجع' : 'Returned'}</option>
-              <option value="Cancelled">{isAr ? 'ملغاة' : 'Cancelled'}</option>
+              {customStatusesList.map(st => (
+                <option key={st.key} value={st.key}>{isAr ? st.ar : st.en}</option>
+              ))}
             </select>
             <button onClick={handleBulkStatusUpdate} className="text-xs px-3 py-1.5 rounded-lg border font-semibold cursor-pointer" style={{ backgroundColor: '#10B981', borderColor: 'transparent', color: '#FFF' }}>
               {isAr ? 'تحديث الحالة' : 'Update Status'}
