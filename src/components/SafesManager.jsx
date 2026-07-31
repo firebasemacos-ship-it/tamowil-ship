@@ -3,13 +3,15 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 
 export default function SafesManager() {
-  const { lang, safes, safeTransactions, addSafe, transferBetweenSafes } = useApp();
+  const { lang, safes, safeTransactions, addSafe, recordSafeTransaction, transferBetweenSafes } = useApp();
   const isAr = lang === 'ar';
   const fmt = v => `${Number(v || 0).toLocaleString('ar-LY')} ${isAr ? 'د.ل' : 'LYD'}`;
 
-  const [selectedSafeId, setSelectedSafeId] = useState('ALL');
-  const [showAddModal, setShowAddModal]   = useState(false);
+  const [selectedSafeId, setSelectedSafeId]   = useState('ALL');
+  const [viewSafeDetailId, setViewSafeDetailId] = useState(null); // ID of safe opened in full page mode
+  const [showAddModal, setShowAddModal]       = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showActionModal, setShowActionModal] = useState(null); // 'deposit' | 'withdrawal' | null
 
   const [newSafeForm, setNewSafeForm] = useState({
     name: '',
@@ -26,6 +28,22 @@ export default function SafesManager() {
     note: ''
   });
 
+  const [actionForm, setActionForm] = useState({
+    safeId: '',
+    amount: '',
+    description: '',
+    ref: ''
+  });
+
+  // Filter state inside safe detail view
+  const [detailSearch, setDetailSearch] = useState('');
+  const [detailTypeFilter, setDetailTypeFilter] = useState('ALL');
+
+  const activeDetailSafe = useMemo(() => {
+    if (!viewSafeDetailId) return null;
+    return (safes || []).find(s => s.id === viewSafeDetailId) || null;
+  }, [safes, viewSafeDetailId]);
+
   const totalSafesBalance = useMemo(() => {
     return (safes || []).reduce((s, safe) => s + Number(safe.balance || 0), 0);
   }, [safes]);
@@ -34,6 +52,44 @@ export default function SafesManager() {
     if (selectedSafeId === 'ALL') return safeTransactions || [];
     return (safeTransactions || []).filter(tx => tx.safeId === selectedSafeId);
   }, [safeTransactions, selectedSafeId]);
+
+  // Transactions for the active detail view safe
+  const activeSafeTransactions = useMemo(() => {
+    if (!viewSafeDetailId) return [];
+    let list = (safeTransactions || []).filter(tx => tx.safeId === viewSafeDetailId);
+    if (detailTypeFilter !== 'ALL') {
+      list = list.filter(tx => tx.type === detailTypeFilter);
+    }
+    if (detailSearch.trim()) {
+      const q = detailSearch.toLowerCase();
+      list = list.filter(tx => 
+        (tx.description && tx.description.toLowerCase().includes(q)) ||
+        (tx.ref && tx.ref.toLowerCase().includes(q)) ||
+        (tx.id && tx.id.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [safeTransactions, viewSafeDetailId, detailTypeFilter, detailSearch]);
+
+  // Financial summary for active detail safe
+  const activeSafeSummary = useMemo(() => {
+    if (!activeDetailSafe) return { initial: 0, deposits: 0, withdrawals: 0, current: 0 };
+    const safeTxs = (safeTransactions || []).filter(tx => tx.safeId === activeDetailSafe.id);
+    const deposits = safeTxs
+      .filter(t => t.type === 'deposit' || t.type === 'transfer_in')
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const withdrawals = safeTxs
+      .filter(t => t.type === 'withdrawal' || t.type === 'transfer_out')
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const initial = Number(activeDetailSafe.initialBalance || 0);
+
+    return {
+      initial,
+      deposits,
+      withdrawals,
+      current: Math.max(0, initial + deposits - withdrawals)
+    };
+  }, [activeDetailSafe, safeTransactions]);
 
   function handleAddSafeSubmit(e) {
     e.preventDefault();
@@ -51,22 +107,213 @@ export default function SafesManager() {
     setShowTransferModal(false);
   }
 
+  function handleActionSubmit(e) {
+    e.preventDefault();
+    if (!actionForm.safeId || !actionForm.amount || !showActionModal) return;
+    recordSafeTransaction({
+      safeId: actionForm.safeId,
+      type: showActionModal,
+      amount: actionForm.amount,
+      description: actionForm.description || (showActionModal === 'deposit' ? (isAr ? 'إيداع مالي يدوي' : 'Manual Deposit') : (isAr ? 'صرف مالي يدوي' : 'Manual Withdrawal')),
+      ref: actionForm.ref || (showActionModal === 'deposit' ? 'DEP-MANUAL' : 'WTH-MANUAL')
+    });
+    setActionForm({ safeId: '', amount: '', description: '', ref: '' });
+    setShowActionModal(null);
+  }
+
+  function openActionModal(type, safeId = '') {
+    setShowActionModal(type);
+    setActionForm(p => ({ ...p, safeId: safeId || (safes?.[0]?.id || '') }));
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // ── DETAILED SAFE VIEW PAGE ──────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════
+  if (viewSafeDetailId && activeDetailSafe) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Print Only Header */}
+        <div className="show-on-print" style={{ display: 'none', textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #000', paddingBottom: '12px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>شركة فانيكس للتوصيل والشحن - VANEX LOGISTICS</h2>
+          <h3 style={{ fontSize: '16px', margin: '6px 0 0' }}>كشف حساب حركة الخزينة المالية ({activeDetailSafe.name})</h3>
+          <p style={{ fontSize: '11px', color: '#555', margin: '4px 0 0' }}>
+            كود الخزينة: {activeDetailSafe.code} • الفرع: {activeDetailSafe.branch} • تاريخ التقرير: {new Date().toLocaleDateString('ar-LY')}
+          </p>
+        </div>
+
+        {/* Screen Header Bar */}
+        <div className="hide-on-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button 
+              onClick={() => setViewSafeDetailId(null)}
+              style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'rgba(128,128,128,0.1)', color: 'var(--text-primary)', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <span>{isAr ? '→' : '←'}</span> {isAr ? 'العودة لكافة الخزائن' : 'Back to All Safes'}
+            </button>
+            <div>
+              <h1 className="title-large" style={{ margin: 0, fontSize: '20px' }}>
+                🏦 {activeDetailSafe.name}
+              </h1>
+              <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{activeDetailSafe.code} • {activeDetailSafe.branch}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button className="glass-button" style={{ background: '#10B981', color: '#fff' }} onClick={() => openActionModal('deposit', activeDetailSafe.id)}>
+              ➕ {isAr ? 'إيداع مالي' : 'Deposit'}
+            </button>
+            <button className="glass-button" style={{ background: '#EF4444', color: '#fff' }} onClick={() => openActionModal('withdrawal', activeDetailSafe.id)}>
+              ➖ {isAr ? 'صرف مالي' : 'Withdraw'}
+            </button>
+            <button className="glass-button" style={{ background: '#6366F1', color: '#fff' }} onClick={() => window.print()}>
+              🖨️ {isAr ? 'طباعة الكشف' : 'Print Statement'}
+            </button>
+          </div>
+        </div>
+
+        {/* KPI Financial Cards for this Safe */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+          <div className="glass-card" style={{ padding: '16px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{isAr ? 'الرصيد الافتتاحي' : 'Initial Balance'}</div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-secondary)', marginTop: '4px' }} dir="ltr">{fmt(activeSafeSummary.initial)}</div>
+          </div>
+          <div className="glass-card" style={{ padding: '16px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{isAr ? 'إجمالي المقبوضات والإيداعات (+)' : 'Total Deposits (+)'}</div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#10B981', marginTop: '4px' }} dir="ltr">+{fmt(activeSafeSummary.deposits)}</div>
+          </div>
+          <div className="glass-card" style={{ padding: '16px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{isAr ? 'إجمالي المدفوعات والمصروفات (-)' : 'Total Withdrawals (-)'}</div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#EF4444', marginTop: '4px' }} dir="ltr">-{fmt(activeSafeSummary.withdrawals)}</div>
+          </div>
+          <div className="glass-card" style={{ padding: '16px', background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05))', border: '1px solid rgba(16,185,129,0.3)' }}>
+            <div style={{ fontSize: '11px', color: '#10B981', fontWeight: 700 }}>{isAr ? 'الرصيد الصافي الحالي (السيولة)' : 'Current Net Balance'}</div>
+            <div style={{ fontSize: '22px', fontWeight: 900, color: '#10B981', marginTop: '4px' }} dir="ltr">{fmt(activeSafeSummary.current)}</div>
+          </div>
+        </div>
+
+        {/* Transactions Table & Filters */}
+        <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="hide-on-print" style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' }}>{isAr ? 'سجل حركات ومعاملات الخزينة' : 'Safe Transactions Ledger'}</span>
+              <span style={{ padding: '2px 8px', borderRadius: '6px', background: 'rgba(99,102,241,0.12)', color: '#6366F1', fontSize: '11px', fontWeight: 700 }}>{activeSafeTransactions.length} {isAr ? 'حركة' : 'txs'}</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <input 
+                type="text" className="glass-input" style={{ padding: '6px 12px', fontSize: '12px', minWidth: '200px' }}
+                placeholder={isAr ? 'بحث بالبيان أو المرجع...' : 'Search description...'}
+                value={detailSearch} onChange={e => setDetailSearch(e.target.value)}
+              />
+              <select className="glass-input" style={{ padding: '6px 12px', fontSize: '12px' }} value={detailTypeFilter} onChange={e => setDetailTypeFilter(e.target.value)}>
+                <option value="ALL">{isAr ? 'جميع أنواع الحركات' : 'All Types'}</option>
+                <option value="deposit">{isAr ? '➕ إيداع مالي' : 'Deposit'}</option>
+                <option value="withdrawal">{isAr ? '➖ صرف مالي' : 'Withdrawal'}</option>
+                <option value="transfer_in">{isAr ? '📥 تحويل وارد' : 'Transfer In'}</option>
+                <option value="transfer_out">{isAr ? '📤 تحويل صادر' : 'Transfer Out'}</option>
+              </select>
+            </div>
+          </div>
+
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>{isAr ? 'التاريخ والوقت' : 'Date & Time'}</th>
+                <th>{isAr ? 'نوع الحركة' : 'Type'}</th>
+                <th>{isAr ? 'المبلغ (د.ل)' : 'Amount'}</th>
+                <th>{isAr ? 'البيان / تفاصيل العملية' : 'Description'}</th>
+                <th>{isAr ? 'المرجع' : 'Reference'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeSafeTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-tertiary)' }}>
+                    {isAr ? 'لا توجد حركات تسوية أو معاملة مسجلة لهذه الخزينة.' : 'No transactions recorded for this safe.'}
+                  </td>
+                </tr>
+              ) : (
+                activeSafeTransactions.map((tx, idx) => {
+                  const isDeposit = tx.type === 'deposit' || tx.type === 'transfer_in';
+                  return (
+                    <tr key={tx.id}>
+                      <td style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{idx + 1}</td>
+                      <td style={{ fontSize: '11px', color: 'var(--text-tertiary)' }} dir="ltr">
+                        {new Date(tx.date).toLocaleString('ar-LY')}
+                      </td>
+                      <td>
+                        <span style={{
+                          padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
+                          background: isDeposit ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                          color: isDeposit ? '#10B981' : '#EF4444'
+                        }}>
+                          {tx.type === 'deposit' ? (isAr ? '➕ إيداع مالي' : 'Deposit') :
+                           tx.type === 'withdrawal' ? (isAr ? '➖ صرف مالي' : 'Withdrawal') :
+                           tx.type === 'transfer_in' ? (isAr ? '📥 تحويل وارد' : 'Transfer In') :
+                           (isAr ? '📤 تحويل صادر' : 'Transfer Out')}
+                        </span>
+                      </td>
+                      <td style={{ fontWeight: 800, color: isDeposit ? '#10B981' : '#EF4444' }} dir="ltr">
+                        {isDeposit ? '+' : '-'}{fmt(tx.amount)}
+                      </td>
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{tx.description}</td>
+                      <td style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{tx.ref}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+
+          {/* Printable Signature Footer */}
+          <div className="show-on-print" style={{ display: 'none', marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #ccc' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', textAlign: 'center' }}>
+              <div>
+                <p style={{ fontWeight: 'bold' }}>إعداد / المحاسب المسؤول:</p>
+                <p style={{ marginTop: '40px' }}>______________________</p>
+              </div>
+              <div>
+                <p style={{ fontWeight: 'bold' }}>اعتماد المدير المالي:</p>
+                <p style={{ marginTop: '40px' }}>______________________</p>
+              </div>
+              <div>
+                <p style={{ fontWeight: 'bold' }}>ختم الخزينة والإدارة:</p>
+                <p style={{ marginTop: '40px' }}>______________________</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Render Action Modals in Detail View as well */}
+        {renderActionModals()}
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // ── MAIN SAFES LIST PAGE ────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
       {/* ── Header ────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
         <div>
           <h1 className="title-large">{isAr ? 'إدارة الخزائن المالية والسيولة' : 'Treasury & Safes Management'}</h1>
-          <p className="subtitle">{isAr ? 'متابعة أرصدة الخزائن النقدیة، إنشاء خزائن الفروع، والتحويل بين الخزائن والسيولة.' : 'Manage safes, cash flow, branch vaults, and inter-safe transfers.'}</p>
+          <p className="subtitle">{isAr ? 'متابعة أرصدة الخزائن النقدیة، الإيداع والصرف المباشر، والتحويل بين السيولة.' : 'Manage safes, cash flow, deposits, withdrawals, and inter-safe transfers.'}</p>
         </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button className="glass-button" style={{ background: '#6366F1' }} onClick={() => setShowTransferModal(true)}>
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
-            {isAr ? 'تحويل بين الخزائن' : 'Transfer Between Safes'}
+          <button className="glass-button" style={{ background: '#10B981', color: '#fff' }} onClick={() => openActionModal('deposit')}>
+            ➕ {isAr ? 'إيداع مالي' : 'Deposit'}
+          </button>
+          <button className="glass-button" style={{ background: '#EF4444', color: '#fff' }} onClick={() => openActionModal('withdrawal')}>
+            ➖ {isAr ? 'صرف مالي' : 'Withdraw'}
+          </button>
+          <button className="glass-button" style={{ background: '#6366F1', color: '#fff' }} onClick={() => setShowTransferModal(true)}>
+            🔄 {isAr ? 'تحويل بين الخزائن' : 'Transfer Between Safes'}
           </button>
           <button className="glass-button" onClick={() => setShowAddModal(true)}>
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-            {isAr ? 'إضافة خزينة جديدة' : 'Add New Safe'}
+            ➕ {isAr ? 'إضافة خزينة جديدة' : 'Add New Safe'}
           </button>
         </div>
       </div>
@@ -101,15 +348,20 @@ export default function SafesManager() {
       {/* ── Safes Grid Cards ──────────────────────────────────── */}
       <div>
         <h3 style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>🏦</span> {isAr ? 'قائمة الخزائن الحالية' : 'Current Safes List'}
+          <span>🏦</span> {isAr ? 'قائمة الخزائن الحالية (اضغط لعرض السجل التفصيلي)' : 'Current Safes List (Click to view full statement)'}
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
           {(safes || []).map(safe => (
-            <div key={safe.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', border: selectedSafeId === safe.id ? '2px solid var(--primary-color)' : '1px solid var(--card-border)', cursor: 'pointer' }} onClick={() => setSelectedSafeId(selectedSafeId === safe.id ? 'ALL' : safe.id)}>
+            <div 
+              key={safe.id} 
+              className="glass-card" 
+              style={{ display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid var(--card-border)', cursor: 'pointer', transition: 'all 0.2s ease' }} 
+              onClick={() => setViewSafeDetailId(safe.id)}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <h4 style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>{safe.name}</h4>
-                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{safe.code} — {safe.branch}</span>
+                  <h4 style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-primary)', margin: 0 }}>{safe.name}</h4>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{safe.code} — {safe.branch}</span>
                 </div>
                 <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700, background: 'rgba(16,185,129,0.12)', color: '#10B981' }}>
                   {isAr ? 'نشطة' : 'Active'}
@@ -118,7 +370,7 @@ export default function SafesManager() {
 
               <div style={{ padding: '12px', borderRadius: '10px', background: 'rgba(128,128,128,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>{isAr ? 'الرصيد المتوفر:' : 'Balance:'}</span>
-                <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--accent-green)' }} dir="ltr">{fmt(safe.balance)}</span>
+                <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-green)' }} dir="ltr">{fmt(safe.balance)}</span>
               </div>
 
               {safe.notes && (
@@ -127,37 +379,46 @@ export default function SafesManager() {
                 </div>
               )}
 
-              <button 
-                onClick={(e) => { e.stopPropagation(); setSelectedSafeId(safe.id); }} 
-                style={{ marginTop: 'auto', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: selectedSafeId === safe.id ? 'var(--primary-color)' : 'transparent', color: selectedSafeId === safe.id ? '#fff' : 'var(--text-secondary)', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
-              >
-                {selectedSafeId === safe.id ? (isAr ? '✓ مفلتر بالحركات' : '✓ Filtered') : (isAr ? 'عرض كشف حركاتها' : 'View Ledger')}
-              </button>
+              {/* Safe Action Buttons */}
+              <div style={{ marginTop: 'auto', paddingTop: '8px', display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
+                <button 
+                  onClick={() => openActionModal('deposit', safe.id)}
+                  style={{ flex: 1, padding: '6px 8px', borderRadius: '8px', border: 'none', background: 'rgba(16,185,129,0.15)', color: '#10B981', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  ➕ {isAr ? 'إيداع' : 'Deposit'}
+                </button>
+                <button 
+                  onClick={() => openActionModal('withdrawal', safe.id)}
+                  style={{ flex: 1, padding: '6px 8px', borderRadius: '8px', border: 'none', background: 'rgba(239,68,68,0.15)', color: '#EF4444', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  ➖ {isAr ? 'صرف' : 'Withdraw'}
+                </button>
+                <button 
+                  onClick={() => setViewSafeDetailId(safe.id)}
+                  style={{ flex: 1.2, padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--primary-color)', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  📄 {isAr ? 'فتح الكشف' : 'View Ledger'}
+                </button>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── Safe Transactions Ledger ───────────────────────────── */}
+      {/* ── All Safes Overview Ledger ───────────────────────────── */}
       <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '16px' }}>📑</span>
             <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' }}>
-              {isAr ? 'كشف حركات ومعاملات الخزائن' : 'Safes Transaction Ledger'}
+              {isAr ? 'كشف حركات ومعاملات كافة الخزائن' : 'All Safes Transaction Ledger'}
             </span>
-            {selectedSafeId !== 'ALL' && (
-              <span style={{ padding: '3px 8px', borderRadius: '6px', background: 'rgba(99,102,241,0.12)', color: '#6366F1', fontSize: '11px', fontWeight: 700 }}>
-                {safes.find(s => s.id === selectedSafeId)?.name}
-              </span>
-            )}
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            {selectedSafeId !== 'ALL' && (
-              <button className="glass-button" style={{ padding: '5px 12px', fontSize: '11px' }} onClick={() => setSelectedSafeId('ALL')}>
-                {isAr ? 'عرض الكل' : 'Show All'}
-              </button>
-            )}
+            <select className="glass-input" style={{ padding: '5px 10px', fontSize: '11px' }} value={selectedSafeId} onChange={e => setSelectedSafeId(e.target.value)}>
+              <option value="ALL">{isAr ? 'جميع الخزائن' : 'All Safes'}</option>
+              {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
             <button className="glass-button" style={{ padding: '5px 12px', fontSize: '11px', background: '#6366F1' }} onClick={() => window.print()}>
               {isAr ? 'طباعة الكشف' : 'Print Ledger'}
             </button>
@@ -197,8 +458,8 @@ export default function SafesManager() {
                         background: isDeposit ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
                         color: isDeposit ? '#10B981' : '#EF4444'
                       }}>
-                        {tx.type === 'deposit' ? (isAr ? '➕ إيداع / تسوية' : 'Deposit') :
-                         tx.type === 'withdrawal' ? (isAr ? '➖ سحب / صرف' : 'Withdrawal') :
+                        {tx.type === 'deposit' ? (isAr ? '➕ إيداع مالي' : 'Deposit') :
+                         tx.type === 'withdrawal' ? (isAr ? '➖ صرف مالي' : 'Withdrawal') :
                          tx.type === 'transfer_in' ? (isAr ? '📥 تحويل وارد' : 'Transfer In') :
                          (isAr ? '📤 تحويل صادر' : 'Transfer Out')}
                       </span>
@@ -216,114 +477,179 @@ export default function SafesManager() {
         </table>
       </div>
 
-      {/* ── Modal: Add Safe ────────────────────────────────────── */}
-      {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-content glass-panel" style={{ padding: '28px', maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🏦</span> {isAr ? 'إضافة خزينة فرعية أو رئيسية جديدة' : 'Add New Safe'}
-            </h3>
-            <form onSubmit={handleAddSafeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                  {isAr ? 'اسم الخزينة' : 'Safe Name'}
-                </label>
-                <input required type="text" className="glass-input w-full" placeholder={isAr ? 'مثال: خزينة فرع الزاوية' : 'e.g. Zawiya Safe'}
-                  value={newSafeForm.name} onChange={e => setNewSafeForm(p => ({ ...p, name: e.target.value }))} />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                  {isAr ? 'رمز / كود الخزينة (اختياري)' : 'Safe Code'}
-                </label>
-                <input type="text" className="glass-input w-full" placeholder="SAFE-ZAW"
-                  value={newSafeForm.code} onChange={e => setNewSafeForm(p => ({ ...p, code: e.target.value }))} />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                  {isAr ? 'الفرع / المدينة' : 'Branch / City'}
-                </label>
-                <input type="text" className="glass-input w-full" placeholder={isAr ? 'الفرع الرئيسي / طرابلس / ...' : 'Main Branch'}
-                  value={newSafeForm.branch} onChange={e => setNewSafeForm(p => ({ ...p, branch: e.target.value }))} />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                  {isAr ? 'الرصيد الافتتاحي (د.ل)' : 'Initial Balance (LYD)'}
-                </label>
-                <input type="number" min="0" className="glass-input w-full" placeholder="0.00"
-                  value={newSafeForm.initialBalance} onChange={e => setNewSafeForm(p => ({ ...p, initialBalance: e.target.value }))} />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                  {isAr ? 'ملاحظات' : 'Notes'}
-                </label>
-                <input type="text" className="glass-input w-full" placeholder={isAr ? 'ملاحظات حول الاستخدام' : 'Usage notes'}
-                  value={newSafeForm.notes} onChange={e => setNewSafeForm(p => ({ ...p, notes: e.target.value }))} />
-              </div>
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
-                <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                  {isAr ? 'إلغاء' : 'Cancel'}
-                </button>
-                <button type="submit" style={{ padding: '8px 22px', borderRadius: '8px', border: 'none', background: 'var(--primary-color)', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
-                  {isAr ? 'حفظ الخزينة' : 'Save Safe'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── Modal: Inter-Safe Transfer ──────────────────────────── */}
-      {showTransferModal && (
-        <div className="modal-overlay" onClick={() => setShowTransferModal(false)}>
-          <div className="modal-content glass-panel" style={{ padding: '28px', maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🔄</span> {isAr ? 'تحويل مالي بين الخزائن' : 'Transfer Between Safes'}
-            </h3>
-            <form onSubmit={handleTransferSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                  {isAr ? 'من الخزينة (خصم صادر)' : 'From Safe (Source)'}
-                </label>
-                <select required className="glass-input w-full" value={transferForm.fromSafeId} onChange={e => setTransferForm(p => ({ ...p, fromSafeId: e.target.value }))}>
-                  <option value="">{isAr ? '-- اختر الخزينة المصدر --' : '-- Select Source --'}</option>
-                  {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name} ({isAr ? 'رصيد:' : 'Bal:'} {s.balance} د.ل)</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                  {isAr ? 'إلى الخزينة (إيداع وارد)' : 'To Safe (Destination)'}
-                </label>
-                <select required className="glass-input w-full" value={transferForm.toSafeId} onChange={e => setTransferForm(p => ({ ...p, toSafeId: e.target.value }))}>
-                  <option value="">{isAr ? '-- اختر الخزينة الهدف --' : '-- Select Destination --'}</option>
-                  {(safes || []).filter(s => s.id !== transferForm.fromSafeId).map(s => <option key={s.id} value={s.id}>{s.name} ({isAr ? 'رصيد:' : 'Bal:'} {s.balance} د.ل)</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                  {isAr ? 'المبلغ المحول (د.ل)' : 'Transfer Amount (LYD)'}
-                </label>
-                <input required type="number" min="1" className="glass-input w-full" placeholder="0.00"
-                  value={transferForm.amount} onChange={e => setTransferForm(p => ({ ...p, amount: e.target.value }))} />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                  {isAr ? 'ملاحظة التحويل' : 'Transfer Note'}
-                </label>
-                <input type="text" className="glass-input w-full" placeholder={isAr ? 'مثال: تغذية خزينة الفرع نقدياً' : 'e.g. Cash replenishment'}
-                  value={transferForm.note} onChange={e => setTransferForm(p => ({ ...p, note: e.target.value }))} />
-              </div>
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
-                <button type="button" onClick={() => setShowTransferModal(false)} style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                  {isAr ? 'إلغاء' : 'Cancel'}
-                </button>
-                <button type="submit" style={{ padding: '8px 22px', borderRadius: '8px', border: 'none', background: '#6366F1', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
-                  {isAr ? 'تأكيد التحويل' : 'Confirm Transfer'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {renderActionModals()}
     </div>
   );
+
+  // Helper render for Deposit / Withdraw / Transfer / Add modals
+  function renderActionModals() {
+    return (
+      <>
+        {/* ── Modal: Manual Deposit / Withdrawal ──────────────────── */}
+        {showActionModal && (
+          <div className="modal-overlay" onClick={() => setShowActionModal(null)}>
+            <div className="modal-content glass-panel" style={{ padding: '28px', maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+              <h3 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: showActionModal === 'deposit' ? '#10B981' : '#EF4444' }}>
+                  {showActionModal === 'deposit' ? '➕' : '➖'}
+                </span> 
+                {showActionModal === 'deposit' ? (isAr ? 'إيداع مالي في الخزينة' : 'Deposit into Safe') : (isAr ? 'صرف مالي من الخزينة' : 'Withdraw from Safe')}
+              </h3>
+              <form onSubmit={handleActionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'اختر الخزينة' : 'Select Safe'}
+                  </label>
+                  <select required className="glass-input w-full" value={actionForm.safeId} onChange={e => setActionForm(p => ({ ...p, safeId: e.target.value }))}>
+                    <option value="">{isAr ? '-- اختر الخزينة --' : '-- Select Safe --'}</option>
+                    {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name} ({isAr ? 'رصيد:' : 'Bal:'} {s.balance} د.ل)</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'المبلغ (د.ل)' : 'Amount (LYD)'}
+                  </label>
+                  <input required type="number" min="1" className="glass-input w-full" placeholder="0.00"
+                    value={actionForm.amount} onChange={e => setActionForm(p => ({ ...p, amount: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'البيان / سبب العملية' : 'Description / Note'}
+                  </label>
+                  <input required type="text" className="glass-input w-full" 
+                    placeholder={showActionModal === 'deposit' ? (isAr ? 'مثال: إيداع عهدة نقود مفاجئة' : 'e.g. Cash deposit') : (isAr ? 'مثال: مصاريف نثريات مكتب' : 'e.g. Office petty cash')}
+                    value={actionForm.description} onChange={e => setActionForm(p => ({ ...p, description: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'المرجع / رقم المستند (اختياري)' : 'Reference (optional)'}
+                  </label>
+                  <input type="text" className="glass-input w-full" placeholder="REC-1002"
+                    value={actionForm.ref} onChange={e => setActionForm(p => ({ ...p, ref: e.target.value }))} />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                  <button type="button" onClick={() => setShowActionModal(null)} style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                    {isAr ? 'إلغاء' : 'Cancel'}
+                  </button>
+                  <button type="submit" style={{ padding: '8px 24px', borderRadius: '8px', border: 'none', background: showActionModal === 'deposit' ? '#10B981' : '#EF4444', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                    {showActionModal === 'deposit' ? (isAr ? 'تأكيد الإيداع' : 'Confirm Deposit') : (isAr ? 'تأكيد الصرف' : 'Confirm Withdrawal')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ── Modal: Add Safe ────────────────────────────────────── */}
+        {showAddModal && (
+          <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+            <div className="modal-content glass-panel" style={{ padding: '28px', maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+              <h3 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🏦</span> {isAr ? 'إضافة خزينة جديدة' : 'Add New Safe'}
+              </h3>
+              <form onSubmit={handleAddSafeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'اسم الخزينة' : 'Safe Name'}
+                  </label>
+                  <input required type="text" className="glass-input w-full" placeholder={isAr ? 'مثال: خزينة فرع الزاوية' : 'e.g. Zawiya Safe'}
+                    value={newSafeForm.name} onChange={e => setNewSafeForm(p => ({ ...p, name: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'رمز / كود الخزينة (اختياري)' : 'Safe Code'}
+                  </label>
+                  <input type="text" className="glass-input w-full" placeholder="SAFE-ZAW"
+                    value={newSafeForm.code} onChange={e => setNewSafeForm(p => ({ ...p, code: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'الفرع / المدينة' : 'Branch / City'}
+                  </label>
+                  <input type="text" className="glass-input w-full" placeholder={isAr ? 'الفرع الرئيسي / طرابلس / ...' : 'Main Branch'}
+                    value={newSafeForm.branch} onChange={e => setNewSafeForm(p => ({ ...p, branch: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'الرصيد الافتتاحي (د.ل)' : 'Initial Balance (LYD)'}
+                  </label>
+                  <input type="number" min="0" className="glass-input w-full" placeholder="0.00"
+                    value={newSafeForm.initialBalance} onChange={e => setNewSafeForm(p => ({ ...p, initialBalance: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'ملاحظات' : 'Notes'}
+                  </label>
+                  <input type="text" className="glass-input w-full" placeholder={isAr ? 'ملاحظات حول الاستخدام' : 'Usage notes'}
+                    value={newSafeForm.notes} onChange={e => setNewSafeForm(p => ({ ...p, notes: e.target.value }))} />
+                </div>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                  <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                    {isAr ? 'إلغاء' : 'Cancel'}
+                  </button>
+                  <button type="submit" style={{ padding: '8px 22px', borderRadius: '8px', border: 'none', background: 'var(--primary-color)', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                    {isAr ? 'حفظ الخزينة' : 'Save Safe'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ── Modal: Inter-Safe Transfer ──────────────────────────── */}
+        {showTransferModal && (
+          <div className="modal-overlay" onClick={() => setShowTransferModal(false)}>
+            <div className="modal-content glass-panel" style={{ padding: '28px', maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+              <h3 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🔄</span> {isAr ? 'تحويل مالي بين الخزائن' : 'Transfer Between Safes'}
+              </h3>
+              <form onSubmit={handleTransferSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'من الخزينة (خصم صادر)' : 'From Safe (Source)'}
+                  </label>
+                  <select required className="glass-input w-full" value={transferForm.fromSafeId} onChange={e => setTransferForm(p => ({ ...p, fromSafeId: e.target.value }))}>
+                    <option value="">{isAr ? '-- اختر الخزينة المصدر --' : '-- Select Source --'}</option>
+                    {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name} ({isAr ? 'رصيد:' : 'Bal:'} {s.balance} د.ل)</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'إلى الخزينة (إيداع وارد)' : 'To Safe (Destination)'}
+                  </label>
+                  <select required className="glass-input w-full" value={transferForm.toSafeId} onChange={e => setTransferForm(p => ({ ...p, toSafeId: e.target.value }))}>
+                    <option value="">{isAr ? '-- اختر الخزينة الهدف --' : '-- Select Destination --'}</option>
+                    {(safes || []).filter(s => s.id !== transferForm.fromSafeId).map(s => <option key={s.id} value={s.id}>{s.name} ({isAr ? 'رصيد:' : 'Bal:'} {s.balance} د.ل)</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'المبلغ المحول (د.ل)' : 'Transfer Amount (LYD)'}
+                  </label>
+                  <input required type="number" min="1" className="glass-input w-full" placeholder="0.00"
+                    value={transferForm.amount} onChange={e => setTransferForm(p => ({ ...p, amount: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'ملاحظة التحويل' : 'Transfer Note'}
+                  </label>
+                  <input type="text" className="glass-input w-full" placeholder={isAr ? 'مثال: تغذية خزينة الفرع نقدياً' : 'e.g. Cash replenishment'}
+                    value={transferForm.note} onChange={e => setTransferForm(p => ({ ...p, note: e.target.value }))} />
+                </div>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                  <button type="button" onClick={() => setShowTransferModal(false)} style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                    {isAr ? 'إلغاء' : 'Cancel'}
+                  </button>
+                  <button type="submit" style={{ padding: '8px 22px', borderRadius: '8px', border: 'none', background: '#6366F1', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                    {isAr ? 'تأكيد التحويل' : 'Confirm Transfer'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
 }

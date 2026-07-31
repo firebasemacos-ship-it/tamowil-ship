@@ -366,6 +366,7 @@ export function AppProvider({ children }) {
       addCity: wrapAction(db.addCity),
       deleteCity: wrapAction(db.deleteCity),
       addSafe: wrapAction(db.addSafe),
+      recordSafeTransaction: wrapAction(db.recordSafeTransaction),
       transferBetweenSafes: wrapAction(db.transferBetweenSafes),
       updateTicketStatus: wrapAction(db.updateTicketStatus),
       addTicketReply: wrapAction(db.addTicketReply)
