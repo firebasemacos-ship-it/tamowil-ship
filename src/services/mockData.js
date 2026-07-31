@@ -394,13 +394,15 @@ export async function getTransactionLog() {
   }));
 }
 
-export async function manualCredit(merchantId, amount, description) {
+export async function manualCredit(merchantId, amount, description, type = 'credit') {
+  const amtVal = type === 'debit' ? -Math.abs(Number(amount)) : Math.abs(Number(amount));
+  const defaultDesc = type === 'debit' ? 'تسوية / خصم يدوي من المحفظة' : 'إيداع يدوي في المحفظة';
   await supabase.from('transactions').insert({
     id: `TXN-${Date.now()}`,
-    type: 'credit',
-    type_ar: description || 'شحن رصيد يدوي',
-    amount: Number(amount),
-    reference: 'MANUAL',
+    type: type === 'debit' ? 'debit' : 'credit',
+    type_ar: description || defaultDesc,
+    amount: amtVal,
+    reference: 'MANUAL_SETTLEMENT',
     merchant_id: merchantId
   });
   return getTransactionLog();

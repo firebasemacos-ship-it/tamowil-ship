@@ -68,7 +68,7 @@ export default function WalletManager() {
   const [rejectNote, setRejectNote]   = useState('');
   const [selectedMerchant, setSelectedMerchant] = useState(null);
   const [showManual, setShowManual]   = useState(false);
-  const [manualForm, setManualForm]   = useState({ merchantId: '', amount: '', description: '' });
+  const [manualForm, setManualForm]   = useState({ merchantId: '', amount: '', type: 'credit', description: '' });
   const [printMode, setPrintMode]     = useState(null); // 'payouts' | 'wallet'
 
   const handlePrint = (mode) => {
@@ -140,8 +140,8 @@ export default function WalletManager() {
   function doManualCredit(e) {
     e.preventDefault();
     if (!manualForm.merchantId || !manualForm.amount) return;
-    manualCredit(manualForm.merchantId, manualForm.amount, manualForm.description || (isAr ? 'إيداع يدوي' : 'Manual Credit'));
-    setManualForm({ merchantId: '', amount: '', description: '' });
+    manualCredit(manualForm.merchantId, manualForm.amount, manualForm.description, manualForm.type || 'credit');
+    setManualForm({ merchantId: '', amount: '', type: 'credit', description: '' });
     setShowManual(false);
   }
 
@@ -177,10 +177,10 @@ export default function WalletManager() {
         <button onClick={() => setShowManual(true)} style={{
           display: 'flex', alignItems: 'center', gap: '8px',
           padding: '11px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer',
-          background: 'linear-gradient(135deg,#10B981,#059669)', color: '#fff', fontWeight: 700, fontSize: '13px',
-          boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
+          background: 'linear-gradient(135deg,#6366F1,#4F46E5)', color: '#fff', fontWeight: 700, fontSize: '13px',
+          boxShadow: '0 4px 16px rgba(99,102,241,0.35)',
         }}>
-          {Icon.plus} {isAr ? 'إيداع يدوي' : 'Manual Credit'}
+          {Icon.plus} {isAr ? 'تسوية / إيداع يدوي' : 'Manual Settlement'}
         </button>
       </div>
 
@@ -530,20 +530,29 @@ export default function WalletManager() {
         </div>
       )}
 
-      {/* ══════════════ MANUAL CREDIT MODAL ══════════════ */}
+      {/* ══════════════ MANUAL SETTLEMENT / CREDIT MODAL ══════════════ */}
       {showManual && (
         <div className="modal-overlay" onClick={() => setShowManual(false)}>
-          <div className="modal-content glass-panel" style={{ padding: '32px', maxWidth: '460px' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-content glass-panel" style={{ padding: '32px', maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '22px' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(16,185,129,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981' }}>
-                {Icon.plus}
+              <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: manualForm.type === 'debit' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: manualForm.type === 'debit' ? '#EF4444' : '#10B981' }}>
+                {manualForm.type === 'debit' ? Icon.bank : Icon.plus}
               </div>
               <div>
-                <h3 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', margin: 0 }}>{isAr ? 'إيداع يدوي في المحفظة' : 'Manual Wallet Credit'}</h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: '3px 0 0' }}>{isAr ? 'لإيداع مبلغ مباشرةً في محفظة تاجر' : 'Directly credit a merchant wallet'}</p>
+                <h3 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', margin: 0 }}>{isAr ? 'التسوية والإيداع اليدوي للمحفظة' : 'Manual Wallet Settlement'}</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: '3px 0 0' }}>{isAr ? 'خصم أو إيداع مالي يدوي في محفظة التاجر' : 'Manual credit or debit adjustment for merchant wallet'}</p>
               </div>
             </div>
             <form onSubmit={doManualCredit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  {isAr ? 'نوع التسوية' : 'Settlement Type'}
+                </label>
+                <select className="glass-input" value={manualForm.type} onChange={e => setManualForm(p => ({ ...p, type: e.target.value }))}>
+                  <option value="credit">{isAr ? '➕ إيداع / شحن رصيد للمحفظة (+)' : '➕ Credit Deposit (+)'}</option>
+                  <option value="debit">{isAr ? '➖ خصم / تسوية رصيد من المحفظة (-)' : '➖ Debit Settlement (-)'}</option>
+                </select>
+              </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                   {isAr ? 'اختر التاجر' : 'Select Merchant'}
@@ -562,21 +571,23 @@ export default function WalletManager() {
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  {isAr ? 'وصف المعاملة' : 'Transaction Description'}
+                  {isAr ? 'وصف أو سبب التسوية' : 'Transaction Description / Note'}
                 </label>
-                <input type="text" className="glass-input" placeholder={isAr ? 'مثال: تسوية ميزانية شهر يوليو' : 'e.g. July balance adjustment'}
+                <input type="text" className="glass-input" placeholder={isAr ? (manualForm.type === 'debit' ? 'مثال: تسوية نقدية للمحفظة' : 'مثال: شحن رصيد تعويضي') : 'e.g. Manual settlement note'}
                   value={manualForm.description} onChange={e => setManualForm(p => ({ ...p, description: e.target.value }))} />
               </div>
-              <div style={{ padding: '12px 14px', borderRadius: '12px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)', display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                <span style={{ color: '#10B981', flexShrink: 0 }}>{Icon.info}</span>
-                {isAr ? 'سيتم تسجيل هذه العملية في سجل المعاملات وإضافتها لرصيد التاجر فوراً.' : 'This will be logged in the transaction history and credited to the merchant wallet immediately.'}
+              <div style={{ padding: '12px 14px', borderRadius: '12px', background: manualForm.type === 'debit' ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.06)', border: `1px solid ${manualForm.type === 'debit' ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)'}`, display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                <span style={{ color: manualForm.type === 'debit' ? '#EF4444' : '#10B981', flexShrink: 0 }}>{Icon.info}</span>
+                {isAr 
+                  ? (manualForm.type === 'debit' ? 'سيتم خصم هذا المبلغ فوراً من محفظة التاجر وتوثيقه في السجل المالي.' : 'سيتم إضافة هذا المبلغ فوراً لحساب محفظة التاجر وتوثيقه في السجل المالي.') 
+                  : (manualForm.type === 'debit' ? 'This amount will be deducted immediately from the merchant wallet.' : 'This amount will be credited immediately to the merchant wallet.')}
               </div>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
                 <button type="button" onClick={() => setShowManual(false)} style={{ padding: '11px 22px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>
                   {isAr ? 'إلغاء' : 'Cancel'}
                 </button>
-                <button type="submit" style={{ padding: '11px 24px', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg,#10B981,#059669)', color: '#fff', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.35)', fontSize: '13px' }}>
-                  {isAr ? 'تأكيد الإيداع' : 'Confirm Credit'}
+                <button type="submit" style={{ padding: '11px 24px', borderRadius: '12px', border: 'none', background: manualForm.type === 'debit' ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'linear-gradient(135deg,#10B981,#059669)', color: '#fff', fontWeight: 700, cursor: 'pointer', boxShadow: `0 4px 14px rgba(${manualForm.type === 'debit' ? '239,68,68' : '16,185,129'},0.35)`, fontSize: '13px' }}>
+                  {isAr ? (manualForm.type === 'debit' ? 'تأكيد الخصم/التسوية' : 'تأكيد الإيداع') : (manualForm.type === 'debit' ? 'Confirm Debit' : 'Confirm Credit')}
                 </button>
               </div>
             </form>
