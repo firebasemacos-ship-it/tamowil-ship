@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backups and scratch scripts
+*.bak
+fix_ids.*
+test_db.js
+update_prints.js
