@@ -734,6 +734,13 @@ const DEFAULT_SAFES = [
   { id: 'SAFE-004', name: 'حساب المصرف / سداد', code: 'BANK-SADAD', branch: 'إلكتروني', initialBalance: 0, balance: 0, active: true, notes: 'حساب التحويلات المصرفية والسداد الإلكتروني' }
 ];
 
+export async function getSafeTransactions() {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem(SAFES_TX_STORAGE_KEY);
+  if (stored) return JSON.parse(stored);
+  return [];
+}
+
 export async function getSafes() {
   if (typeof window === 'undefined') return DEFAULT_SAFES;
   let safes = [];
@@ -756,25 +763,30 @@ export async function getSafes() {
 
     if (deliveredShipments && deliveredShipments.length > 0) {
       let newlyRecorded = false;
+      const safeObj = safes.find(s => s.id === 'SAFE-001');
       for (const sh of deliveredShipments) {
         const trk = sh.tracking_number;
         const alreadyRecorded = txs.some(t => t.ref === trk && t.type === 'deposit');
         if (!alreadyRecorded) {
           const amt = Number(sh.price || 0) || (Number(sh.product_price || 0) + Number(sh.delivery_fee || 0) + Number(sh.cod_fee || 0));
           if (amt > 0) {
-            await recordSafeTransaction({
+            const newTx = {
+              id: `STX-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
               safeId: 'SAFE-001',
+              safeName: safeObj?.name || 'الخزينة الرئيسية (المركز)',
               type: 'deposit',
               amount: amt,
               description: `تحصيل نقدية شحنة مسلّمة (${trk})`,
-              ref: trk
-            });
+              ref: trk,
+              date: new Date().toISOString()
+            };
+            txs.unshift(newTx);
             newlyRecorded = true;
           }
         }
       }
       if (newlyRecorded) {
-        txs = await getSafeTransactions();
+        localStorage.setItem(SAFES_TX_STORAGE_KEY, JSON.stringify(txs));
       }
     }
   } catch (err) {
@@ -834,30 +846,16 @@ export async function addSafe(safeData) {
   return getSafes();
 }
 
-export async function getSafeTransactions() {
-  if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem(SAFES_TX_STORAGE_KEY);
-  if (stored) return JSON.parse(stored);
-  return [];
-}
-
 export async function recordSafeTransaction({ safeId, type, amount, description, ref }) {
   const txs = await getSafeTransactions();
-  const safes = await getSafes();
-  
-  const safeIdx = safes.findIndex(s => s.id === safeId);
+  let safes = [];
+  const storedSafes = typeof window !== 'undefined' ? localStorage.getItem(SAFES_STORAGE_KEY) : null;
+  if (storedSafes) safes = JSON.parse(storedSafes);
+  else safes = DEFAULT_SAFES;
+
   const amtVal = Math.abs(Number(amount || 0));
-
-  if (safeIdx !== -1) {
-    if (type === 'deposit' || type === 'transfer_in') {
-      safes[safeIdx].balance += amtVal;
-    } else if (type === 'withdrawal' || type === 'transfer_out') {
-      safes[safeIdx].balance = Math.max(0, safes[safeIdx].balance - amtVal);
-    }
-    await saveSafes(safes);
-  }
-
   const safeObj = safes.find(s => s.id === safeId);
+
   const newTx = {
     id: `STX-${Date.now()}-${Math.floor(Math.random() * 100)}`,
     safeId,
@@ -880,7 +878,11 @@ export async function transferBetweenSafes(fromSafeId, toSafeId, amount, note) {
   const amtVal = Number(amount || 0);
   if (amtVal <= 0 || fromSafeId === toSafeId) return;
 
-  const safes = await getSafes();
+  let safes = [];
+  const storedSafes = typeof window !== 'undefined' ? localStorage.getItem(SAFES_STORAGE_KEY) : null;
+  if (storedSafes) safes = JSON.parse(storedSafes);
+  else safes = DEFAULT_SAFES;
+
   const fromSafe = safes.find(s => s.id === fromSafeId);
   const toSafe = safes.find(s => s.id === toSafeId);
 
