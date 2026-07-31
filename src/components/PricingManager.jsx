@@ -204,25 +204,26 @@ export default function PricingManager() {
         <table style={{ width: '100%', borderCollapse: 'collapse', borderRadius: '8px', overflow: 'hidden', border: '1px solid #CBD5E1' }}>
           <thead>
             <tr style={{ background: '#0D7847', color: '#FFFFFF' }}>
-              <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: '800', textAlign: 'center', width: '8%', borderBottom: '2px solid #065F46' }}>#</th>
-              <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: '800', textAlign: 'right', width: '32%', borderBottom: '2px solid #065F46' }}>المدينة / المنطقة</th>
-              <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: '800', textAlign: 'center', width: '20%', borderBottom: '2px solid #065F46' }}>رسوم التوصيل</th>
-              <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: '800', textAlign: 'center', width: '20%', borderBottom: '2px solid #065F46' }}>رسوم التحصيل (COD)</th>
-              <th style={{ padding: '10px 12px', fontSize: '13px', fontWeight: '900', textAlign: 'center', width: '20%', borderBottom: '2px solid #065F46', background: '#065F46' }}>إجمالي تكلفة التوصيل</th>
+              <th style={{ padding: '11px 12px', fontSize: '13px', fontWeight: '800', textAlign: 'center', width: '10%', borderBottom: '2px solid #065F46' }}>#</th>
+              <th style={{ padding: '11px 16px', fontSize: '13px', fontWeight: '800', textAlign: 'right', width: '50%', borderBottom: '2px solid #065F46' }}>المدينة / المنطقة</th>
+              <th style={{ padding: '11px 16px', fontSize: '14px', fontWeight: '900', textAlign: 'center', width: '25%', borderBottom: '2px solid #065F46', background: '#065F46' }}>سعر التوصيل (د.ل)</th>
+              <th style={{ padding: '11px 12px', fontSize: '13px', fontWeight: '800', textAlign: 'center', width: '15%', borderBottom: '2px solid #065F46' }}>الحالة</th>
             </tr>
           </thead>
           <tbody>
             {pricing.map((c, idx) => (
               <tr key={c.city} style={{ background: idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                <td style={{ padding: '9px 12px', textAlign: 'center', fontSize: '12px', color: '#64748B', fontWeight: '700' }}>{idx + 1}</td>
-                <td style={{ padding: '9px 12px', textAlign: 'right', fontSize: '13px', color: '#0F172A', fontWeight: '800' }}>
+                <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: '13px', color: '#64748B', fontWeight: '700' }}>{idx + 1}</td>
+                <td style={{ padding: '10px 16px', textAlign: 'right', fontSize: '14px', color: '#0F172A', fontWeight: '800' }}>
                   {c.city}
-                  {!c.active && <span style={{ marginRight: '8px', fontSize: '10px', background: '#FEE2E2', color: '#991B1B', padding: '2px 6px', borderRadius: '4px' }}>غير متوفر</span>}
                 </td>
-                <td style={{ padding: '9px 12px', textAlign: 'center', fontSize: '13px', color: '#15803D', fontWeight: '700' }} dir="ltr">{c.fee} د.ل</td>
-                <td style={{ padding: '9px 12px', textAlign: 'center', fontSize: '13px', color: '#475569', fontWeight: '600' }} dir="ltr">{c.codFee} د.ل</td>
-                <td style={{ padding: '9px 12px', textAlign: 'center', fontSize: '14px', color: '#0D7847', fontWeight: '900', background: idx % 2 === 0 ? '#F0FDF4' : '#DCFCE7' }} dir="ltr">
+                <td style={{ padding: '10px 16px', textAlign: 'center', fontSize: '15px', color: '#0D7847', fontWeight: '900', background: idx % 2 === 0 ? '#F0FDF4' : '#DCFCE7' }} dir="ltr">
                   {c.fee + c.codFee} د.ل
+                </td>
+                <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: '12px', fontWeight: '800' }}>
+                  <span style={{ padding: '3px 10px', borderRadius: '6px', background: c.active ? '#DCFCE7' : '#FEE2E2', color: c.active ? '#15803D' : '#991B1B' }}>
+                    {c.active ? 'مُفعل' : 'غير متوفر'}
+                  </span>
                 </td>
               </tr>
             ))}
