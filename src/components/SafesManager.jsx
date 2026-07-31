@@ -131,117 +131,305 @@ export default function SafesManager() {
   // ════════════════════════════════════════════════════════════════════════
   if (viewSafeDetailId && activeDetailSafe) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {/* Print Only Header */}
-        <div className="show-on-print" style={{ display: 'none', textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #000', paddingBottom: '12px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>شركة فانيكس للتوصيل والشحن - VANEX LOGISTICS</h2>
-          <h3 style={{ fontSize: '16px', margin: '6px 0 0' }}>كشف حساب حركة الخزينة المالية ({activeDetailSafe.name})</h3>
-          <p style={{ fontSize: '11px', color: '#555', margin: '4px 0 0' }}>
-            كود الخزينة: {activeDetailSafe.code} • الفرع: {activeDetailSafe.branch} • تاريخ التقرير: {new Date().toLocaleDateString('ar-LY')}
-          </p>
-        </div>
+      <>
+        <div className="hide-on-print" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Screen Header Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button 
+                onClick={() => setViewSafeDetailId(null)}
+                style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'rgba(128,128,128,0.1)', color: 'var(--text-primary)', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span>{isAr ? '→' : '←'}</span> {isAr ? 'العودة لكافة الخزائن' : 'Back to All Safes'}
+              </button>
+              <div>
+                <h1 className="title-large" style={{ margin: 0, fontSize: '20px' }}>
+                  🏦 {activeDetailSafe.name}
+                </h1>
+                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{activeDetailSafe.code} • {activeDetailSafe.branch}</span>
+              </div>
+            </div>
 
-        {/* Screen Header Bar */}
-        <div className="hide-on-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button 
-              onClick={() => setViewSafeDetailId(null)}
-              style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'rgba(128,128,128,0.1)', color: 'var(--text-primary)', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <span>{isAr ? '→' : '←'}</span> {isAr ? 'العودة لكافة الخزائن' : 'Back to All Safes'}
-            </button>
-            <div>
-              <h1 className="title-large" style={{ margin: 0, fontSize: '20px' }}>
-                🏦 {activeDetailSafe.name}
-              </h1>
-              <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{activeDetailSafe.code} • {activeDetailSafe.branch}</span>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button className="glass-button" style={{ background: '#10B981', color: '#fff' }} onClick={() => openActionModal('deposit', activeDetailSafe.id)}>
+                ➕ {isAr ? 'إيداع مالي' : 'Deposit'}
+              </button>
+              <button className="glass-button" style={{ background: '#EF4444', color: '#fff' }} onClick={() => openActionModal('withdrawal', activeDetailSafe.id)}>
+                ➖ {isAr ? 'صرف مالي' : 'Withdraw'}
+              </button>
+              <button className="glass-button" style={{ background: '#6366F1', color: '#fff' }} onClick={() => window.print()}>
+                🖨️ {isAr ? 'طباعة الكشف' : 'Print Statement'}
+              </button>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button className="glass-button" style={{ background: '#10B981', color: '#fff' }} onClick={() => openActionModal('deposit', activeDetailSafe.id)}>
+          {/* KPI Financial Cards for this Safe */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+            <div className="glass-card" style={{ padding: '16px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{isAr ? 'الرصيد الافتتاحي' : 'Initial Balance'}</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-secondary)', marginTop: '4px' }} dir="ltr">{fmt(activeSafeSummary.initial)}</div>
+            </div>
+            <div className="glass-card" style={{ padding: '16px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{isAr ? 'إجمالي المقبوضات والإيداعات (+)' : 'Total Deposits (+)'}</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#10B981', marginTop: '4px' }} dir="ltr">+{fmt(activeSafeSummary.deposits)}</div>
+            </div>
+            <div className="glass-card" style={{ padding: '16px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{isAr ? 'إجمالي المدفوعات والمصروفات (-)' : 'Total Withdrawals (-)'}</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#EF4444', marginTop: '4px' }} dir="ltr">-{fmt(activeSafeSummary.withdrawals)}</div>
+            </div>
+            <div className="glass-card" style={{ padding: '16px', background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05))', border: '1px solid rgba(16,185,129,0.3)' }}>
+              <div style={{ fontSize: '11px', color: '#10B981', fontWeight: 700 }}>{isAr ? 'الرصيد الصافي الحالي (السيولة)' : 'Current Net Balance'}</div>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: '#10B981', marginTop: '4px' }} dir="ltr">{fmt(activeSafeSummary.current)}</div>
+            </div>
+          </div>
+
+          {/* Transactions Table & Filters */}
+          <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' }}>{isAr ? 'سجل حركات ومعاملات الخزينة' : 'Safe Transactions Ledger'}</span>
+                <span style={{ padding: '2px 8px', borderRadius: '6px', background: 'rgba(99,102,241,0.12)', color: '#6366F1', fontSize: '11px', fontWeight: 700 }}>{activeSafeTransactions.length} {isAr ? 'حركة' : 'txs'}</span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <input 
+                  type="text" className="glass-input" style={{ padding: '6px 12px', fontSize: '12px', minWidth: '200px' }}
+                  placeholder={isAr ? 'بحث بالبيان أو المرجع...' : 'Search description...'}
+                  value={detailSearch} onChange={e => setDetailSearch(e.target.value)}
+                />
+                <select className="glass-input" style={{ padding: '6px 12px', fontSize: '12px' }} value={detailTypeFilter} onChange={e => setDetailTypeFilter(e.target.value)}>
+                  <option value="ALL">{isAr ? 'جميع أنواع الحركات' : 'All Types'}</option>
+                  <option value="deposit">{isAr ? '➕ إيداع مالي' : 'Deposit'}</option>
+                  <option value="withdrawal">{isAr ? '➖ صرف مالي' : 'Withdrawal'}</option>
+                  <option value="transfer_in">{isAr ? '📥 تحويل وارد' : 'Transfer In'}</option>
+                  <option value="transfer_out">{isAr ? '📤 تحويل صادر' : 'Transfer Out'}</option>
+                </select>
+              </div>
+            </div>
+
+            <table className="custom-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{isAr ? 'التاريخ والوقت' : 'Date & Time'}</th>
+                  <th>{isAr ? 'نوع الحركة' : 'Type'}</th>
+                  <th>{isAr ? 'المبلغ (د.ل)' : 'Amount'}</th>
+                  <th>{isAr ? 'البيان / تفاصيل العملية' : 'Description'}</th>
+                  <th>{isAr ? 'المرجع' : 'Reference'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeSafeTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-tertiary)' }}>
+                      {isAr ? 'لا توجد حركات تسوية أو معاملة مسجلة لهذه الخزينة.' : 'No transactions recorded for this safe.'}
+                    </td>
+                  </tr>
+                ) : (
+                  activeSafeTransactions.map((tx, idx) => {
+                    const isDeposit = tx.type === 'deposit' || tx.type === 'transfer_in';
+                    return (
+                      <tr key={tx.id}>
+                        <td style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{idx + 1}</td>
+                        <td style={{ fontSize: '11px', color: 'var(--text-tertiary)' }} dir="ltr">
+                          {new Date(tx.date).toLocaleString('ar-LY')}
+                        </td>
+                        <td>
+                          <span style={{
+                            padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
+                            background: isDeposit ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                            color: isDeposit ? '#10B981' : '#EF4444'
+                          }}>
+                            {tx.type === 'deposit' ? (isAr ? '➕ إيداع مالي' : 'Deposit') :
+                             tx.type === 'withdrawal' ? (isAr ? '➖ صرف مالي' : 'Withdrawal') :
+                             tx.type === 'transfer_in' ? (isAr ? '📥 تحويل وارد' : 'Transfer In') :
+                             (isAr ? '📤 تحويل صادر' : 'Transfer Out')}
+                          </span>
+                        </td>
+                        <td style={{ fontWeight: 800, color: isDeposit ? '#10B981' : '#EF4444' }} dir="ltr">
+                          {isDeposit ? '+' : '-'}{fmt(tx.amount)}
+                        </td>
+                        <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{tx.description}</td>
+                        <td style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{tx.ref}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ── Official Printable A4 Statement ── */}
+        {renderPrintableArea(activeDetailSafe, activeSafeTransactions)}
+
+        {renderActionModals()}
+      </>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // ── MAIN SAFES LIST PAGE ────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════
+  return (
+    <>
+      <div className="hide-on-print" style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+        {/* ── Header ────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
+          <div>
+            <h1 className="title-large">{isAr ? 'إدارة الخزائن المالية والسيولة' : 'Treasury & Safes Management'}</h1>
+            <p className="subtitle">{isAr ? 'متابعة أرصدة الخزائن النقدیة، الإيداع والصرف المباشر، والتحويل بين السيولة.' : 'Manage safes, cash flow, deposits, withdrawals, and inter-safe transfers.'}</p>
+          </div>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button className="glass-button" style={{ background: '#10B981', color: '#fff' }} onClick={() => openActionModal('deposit')}>
               ➕ {isAr ? 'إيداع مالي' : 'Deposit'}
             </button>
-            <button className="glass-button" style={{ background: '#EF4444', color: '#fff' }} onClick={() => openActionModal('withdrawal', activeDetailSafe.id)}>
+            <button className="glass-button" style={{ background: '#EF4444', color: '#fff' }} onClick={() => openActionModal('withdrawal')}>
               ➖ {isAr ? 'صرف مالي' : 'Withdraw'}
             </button>
-            <button className="glass-button" style={{ background: '#6366F1', color: '#fff' }} onClick={() => window.print()}>
-              🖨️ {isAr ? 'طباعة الكشف' : 'Print Statement'}
+            <button className="glass-button" style={{ background: '#6366F1', color: '#fff' }} onClick={() => setShowTransferModal(true)}>
+              🔄 {isAr ? 'تحويل بين الخزائن' : 'Transfer Between Safes'}
+            </button>
+            <button className="glass-button" onClick={() => setShowAddModal(true)}>
+              ➕ {isAr ? 'إضافة خزينة جديدة' : 'Add New Safe'}
             </button>
           </div>
         </div>
 
-        {/* KPI Financial Cards for this Safe */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-          <div className="glass-card" style={{ padding: '16px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{isAr ? 'الرصيد الافتتاحي' : 'Initial Balance'}</div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-secondary)', marginTop: '4px' }} dir="ltr">{fmt(activeSafeSummary.initial)}</div>
+        {/* ── KPI Cards ────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+          <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10B981,#059669)', color: '#fff', fontSize: '22px' }}>🏦</div>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)' }}>{isAr ? 'إجمالي السيولة بالأرصدة' : 'Total Safes Cash'}</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }} dir="ltr">{fmt(totalSafesBalance)}</div>
+            </div>
           </div>
-          <div className="glass-card" style={{ padding: '16px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{isAr ? 'إجمالي المقبوضات والإيداعات (+)' : 'Total Deposits (+)'}</div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#10B981', marginTop: '4px' }} dir="ltr">+{fmt(activeSafeSummary.deposits)}</div>
+
+          <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#3B82F6,#1D4ED8)', color: '#fff', fontSize: '22px' }}>🔐</div>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)' }}>{isAr ? 'عدد الخزائن الفعالة' : 'Active Safes'}</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{(safes || []).length} {isAr ? 'خزائن' : 'Safes'}</div>
+            </div>
           </div>
-          <div className="glass-card" style={{ padding: '16px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{isAr ? 'إجمالي المدفوعات والمصروفات (-)' : 'Total Withdrawals (-)'}</div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#EF4444', marginTop: '4px' }} dir="ltr">-{fmt(activeSafeSummary.withdrawals)}</div>
-          </div>
-          <div className="glass-card" style={{ padding: '16px', background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05))', border: '1px solid rgba(16,185,129,0.3)' }}>
-            <div style={{ fontSize: '11px', color: '#10B981', fontWeight: 700 }}>{isAr ? 'الرصيد الصافي الحالي (السيولة)' : 'Current Net Balance'}</div>
-            <div style={{ fontSize: '22px', fontWeight: 900, color: '#10B981', marginTop: '4px' }} dir="ltr">{fmt(activeSafeSummary.current)}</div>
+
+          <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#818CF8,#4F46E5)', color: '#fff', fontSize: '22px' }}>📜</div>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)' }}>{isAr ? 'إجمالي المعاملات والتحويلات' : 'Treasury Movements'}</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{(safeTransactions || []).length} {isAr ? 'معاملة' : 'Txs'}</div>
+            </div>
           </div>
         </div>
 
-        {/* Transactions Table & Filters */}
-        <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="hide-on-print" style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' }}>{isAr ? 'سجل حركات ومعاملات الخزينة' : 'Safe Transactions Ledger'}</span>
-              <span style={{ padding: '2px 8px', borderRadius: '6px', background: 'rgba(99,102,241,0.12)', color: '#6366F1', fontSize: '11px', fontWeight: 700 }}>{activeSafeTransactions.length} {isAr ? 'حركة' : 'txs'}</span>
-            </div>
+        {/* ── Safes Grid Cards ──────────────────────────────────── */}
+        <div>
+          <h3 style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>🏦</span> {isAr ? 'قائمة الخزائن الحالية (اضغط لعرض السجل التفصيلي)' : 'Current Safes List (Click to view full statement)'}
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+            {(safes || []).map(safe => (
+              <div 
+                key={safe.id} 
+                className="glass-card" 
+                style={{ display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid var(--card-border)', cursor: 'pointer', transition: 'all 0.2s ease' }} 
+                onClick={() => setViewSafeDetailId(safe.id)}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <h4 style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-primary)', margin: 0 }}>{safe.name}</h4>
+                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{safe.code} — {safe.branch}</span>
+                  </div>
+                  <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700, background: 'rgba(16,185,129,0.12)', color: '#10B981' }}>
+                    {isAr ? 'نشطة' : 'Active'}
+                  </span>
+                </div>
 
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <input 
-                type="text" className="glass-input" style={{ padding: '6px 12px', fontSize: '12px', minWidth: '200px' }}
-                placeholder={isAr ? 'بحث بالبيان أو المرجع...' : 'Search description...'}
-                value={detailSearch} onChange={e => setDetailSearch(e.target.value)}
-              />
-              <select className="glass-input" style={{ padding: '6px 12px', fontSize: '12px' }} value={detailTypeFilter} onChange={e => setDetailTypeFilter(e.target.value)}>
-                <option value="ALL">{isAr ? 'جميع أنواع الحركات' : 'All Types'}</option>
-                <option value="deposit">{isAr ? '➕ إيداع مالي' : 'Deposit'}</option>
-                <option value="withdrawal">{isAr ? '➖ صرف مالي' : 'Withdrawal'}</option>
-                <option value="transfer_in">{isAr ? '📥 تحويل وارد' : 'Transfer In'}</option>
-                <option value="transfer_out">{isAr ? '📤 تحويل صادر' : 'Transfer Out'}</option>
+                <div style={{ padding: '12px', borderRadius: '10px', background: 'rgba(128,128,128,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>{isAr ? 'الرصيد المتوفر:' : 'Balance:'}</span>
+                  <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-green)' }} dir="ltr">{fmt(safe.balance)}</span>
+                </div>
+
+                {safe.notes && (
+                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                    💬 {safe.notes}
+                  </div>
+                )}
+
+                {/* Safe Action Buttons */}
+                <div style={{ marginTop: 'auto', paddingTop: '8px', display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
+                  <button 
+                    onClick={() => openActionModal('deposit', safe.id)}
+                    style={{ flex: 1, padding: '6px 8px', borderRadius: '8px', border: 'none', background: 'rgba(16,185,129,0.15)', color: '#10B981', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    ➕ {isAr ? 'إيداع' : 'Deposit'}
+                  </button>
+                  <button 
+                    onClick={() => openActionModal('withdrawal', safe.id)}
+                    style={{ flex: 1, padding: '6px 8px', borderRadius: '8px', border: 'none', background: 'rgba(239,68,68,0.15)', color: '#EF4444', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    ➖ {isAr ? 'صرف' : 'Withdraw'}
+                  </button>
+                  <button 
+                    onClick={() => setViewSafeDetailId(safe.id)}
+                    style={{ flex: 1.2, padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--primary-color)', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    📄 {isAr ? 'فتح الكشف' : 'View Ledger'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── All Safes Overview Ledger ───────────────────────────── */}
+        <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '16px' }}>📑</span>
+              <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' }}>
+                {isAr ? 'كشف حركات ومعاملات كافة الخزائن' : 'All Safes Transaction Ledger'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select className="glass-input" style={{ padding: '5px 10px', fontSize: '11px' }} value={selectedSafeId} onChange={e => setSelectedSafeId(e.target.value)}>
+                <option value="ALL">{isAr ? 'جميع الخزائن' : 'All Safes'}</option>
+                {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
+              <button className="glass-button" style={{ padding: '5px 12px', fontSize: '11px', background: '#6366F1' }} onClick={() => window.print()}>
+                {isAr ? 'طباعة الكشف' : 'Print Ledger'}
+              </button>
             </div>
           </div>
 
           <table className="custom-table">
             <thead>
               <tr>
-                <th>#</th>
                 <th>{isAr ? 'التاريخ والوقت' : 'Date & Time'}</th>
-                <th>{isAr ? 'نوع الحركة' : 'Type'}</th>
+                <th>{isAr ? 'الخزينة' : 'Safe Name'}</th>
+                <th>{isAr ? 'نوع الحركة' : 'Movement Type'}</th>
                 <th>{isAr ? 'المبلغ (د.ل)' : 'Amount'}</th>
-                <th>{isAr ? 'البيان / تفاصيل العملية' : 'Description'}</th>
+                <th>{isAr ? 'البيان / الوصف' : 'Description'}</th>
                 <th>{isAr ? 'المرجع' : 'Reference'}</th>
               </tr>
             </thead>
             <tbody>
-              {activeSafeTransactions.length === 0 ? (
+              {filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-tertiary)' }}>
-                    {isAr ? 'لا توجد حركات تسوية أو معاملة مسجلة لهذه الخزينة.' : 'No transactions recorded for this safe.'}
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-tertiary)' }}>
+                    {isAr ? 'لا توجد حركات تسوية أو تحويلات مسجلة حتى الآن.' : 'No safe transactions logged yet.'}
                   </td>
                 </tr>
               ) : (
-                activeSafeTransactions.map((tx, idx) => {
+                filteredTransactions.map(tx => {
                   const isDeposit = tx.type === 'deposit' || tx.type === 'transfer_in';
                   return (
                     <tr key={tx.id}>
-                      <td style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{idx + 1}</td>
                       <td style={{ fontSize: '11px', color: 'var(--text-tertiary)' }} dir="ltr">
                         {new Date(tx.date).toLocaleString('ar-LY')}
                       </td>
+                      <td style={{ fontWeight: 700 }}>{tx.safeName}</td>
                       <td>
                         <span style={{
                           padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
@@ -265,221 +453,96 @@ export default function SafesManager() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
 
-          {/* Printable Signature Footer */}
-          <div className="show-on-print" style={{ display: 'none', marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #ccc' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', textAlign: 'center' }}>
-              <div>
-                <p style={{ fontWeight: 'bold' }}>إعداد / المحاسب المسؤول:</p>
-                <p style={{ marginTop: '40px' }}>______________________</p>
-              </div>
-              <div>
-                <p style={{ fontWeight: 'bold' }}>اعتماد المدير المالي:</p>
-                <p style={{ marginTop: '40px' }}>______________________</p>
-              </div>
-              <div>
-                <p style={{ fontWeight: 'bold' }}>ختم الخزينة والإدارة:</p>
-                <p style={{ marginTop: '40px' }}>______________________</p>
-              </div>
-            </div>
+      {/* ── Official Printable A4 Statement ── */}
+      {renderPrintableArea(null, filteredTransactions)}
+
+      {renderActionModals()}
+    </>
+  );
+
+  // Helper render for Printable A4 Statement
+  function renderPrintableArea(safeObj, txList) {
+    return (
+      <div className="printable-area hide-on-screen" dir="rtl">
+        <div className="print-header">
+          <div className="print-logo-container">
+            <img src="/logo-color.png" alt="VANEX LOGISTICS" style={{ height: '60px', objectFit: 'contain' }} />
           </div>
+          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '4px 0', color: '#0D7847' }}>
+            شركة فانيكس للتوصيل والشحن - VANEX LOGISTICS
+          </h2>
+          <p className="print-subtitle" style={{ fontSize: '14px', marginTop: '4px' }}>
+            {safeObj ? `كشف حساب حركة الخزينة المالية: (${safeObj.name})` : 'كشف حساب حركات الخزائن المالية'}
+          </p>
         </div>
 
-        {/* Render Action Modals in Detail View as well */}
-        {renderActionModals()}
-      </div>
-    );
-  }
-
-  // ════════════════════════════════════════════════════════════════════════
-  // ── MAIN SAFES LIST PAGE ────────────────────────────────────────────────
-  // ════════════════════════════════════════════════════════════════════════
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      {/* ── Header ────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
-        <div>
-          <h1 className="title-large">{isAr ? 'إدارة الخزائن المالية والسيولة' : 'Treasury & Safes Management'}</h1>
-          <p className="subtitle">{isAr ? 'متابعة أرصدة الخزائن النقدیة، الإيداع والصرف المباشر، والتحويل بين السيولة.' : 'Manage safes, cash flow, deposits, withdrawals, and inter-safe transfers.'}</p>
-        </div>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button className="glass-button" style={{ background: '#10B981', color: '#fff' }} onClick={() => openActionModal('deposit')}>
-            ➕ {isAr ? 'إيداع مالي' : 'Deposit'}
-          </button>
-          <button className="glass-button" style={{ background: '#EF4444', color: '#fff' }} onClick={() => openActionModal('withdrawal')}>
-            ➖ {isAr ? 'صرف مالي' : 'Withdraw'}
-          </button>
-          <button className="glass-button" style={{ background: '#6366F1', color: '#fff' }} onClick={() => setShowTransferModal(true)}>
-            🔄 {isAr ? 'تحويل بين الخزائن' : 'Transfer Between Safes'}
-          </button>
-          <button className="glass-button" onClick={() => setShowAddModal(true)}>
-            ➕ {isAr ? 'إضافة خزينة جديدة' : 'Add New Safe'}
-          </button>
-        </div>
-      </div>
-
-      {/* ── KPI Cards ────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10B981,#059669)', color: '#fff', fontSize: '22px' }}>🏦</div>
+        <div className="print-meta-info">
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)' }}>{isAr ? 'إجمالي السيولة بالأرصدة' : 'Total Safes Cash'}</div>
-            <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }} dir="ltr">{fmt(totalSafesBalance)}</div>
+            {safeObj ? (
+              <>كود الخزينة: <span>{safeObj.code}</span> • الفرع: <span>{safeObj.branch}</span> • الرصيد الحالي: <span>{fmt(safeObj.balance)}</span></>
+            ) : (
+              <>إجمالي السيولة بالأرصدة: <span>{fmt(totalSafesBalance)}</span> • عدد الخزائن: <span>{(safes || []).length}</span></>
+            )}
           </div>
+          <div>تاريخ التقرير: {new Date().toLocaleDateString('ar-LY')} {new Date().toLocaleTimeString('ar-LY')}</div>
         </div>
 
-        <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#3B82F6,#1D4ED8)', color: '#fff', fontSize: '22px' }}>🔐</div>
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)' }}>{isAr ? 'عدد الخزائن الفعالة' : 'Active Safes'}</div>
-            <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{(safes || []).length} {isAr ? 'خزائن' : 'Safes'}</div>
-          </div>
-        </div>
-
-        <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#818CF8,#4F46E5)', color: '#fff', fontSize: '22px' }}>📜</div>
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)' }}>{isAr ? 'إجمالي المعاملات والتحويلات' : 'Treasury Movements'}</div>
-            <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{(safeTransactions || []).length} {isAr ? 'معاملة' : 'Txs'}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Safes Grid Cards ──────────────────────────────────── */}
-      <div>
-        <h3 style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>🏦</span> {isAr ? 'قائمة الخزائن الحالية (اضغط لعرض السجل التفصيلي)' : 'Current Safes List (Click to view full statement)'}
-        </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-          {(safes || []).map(safe => (
-            <div 
-              key={safe.id} 
-              className="glass-card" 
-              style={{ display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid var(--card-border)', cursor: 'pointer', transition: 'all 0.2s ease' }} 
-              onClick={() => setViewSafeDetailId(safe.id)}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h4 style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-primary)', margin: 0 }}>{safe.name}</h4>
-                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{safe.code} — {safe.branch}</span>
-                </div>
-                <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700, background: 'rgba(16,185,129,0.12)', color: '#10B981' }}>
-                  {isAr ? 'نشطة' : 'Active'}
-                </span>
-              </div>
-
-              <div style={{ padding: '12px', borderRadius: '10px', background: 'rgba(128,128,128,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>{isAr ? 'الرصيد المتوفر:' : 'Balance:'}</span>
-                <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-green)' }} dir="ltr">{fmt(safe.balance)}</span>
-              </div>
-
-              {safe.notes && (
-                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                  💬 {safe.notes}
-                </div>
-              )}
-
-              {/* Safe Action Buttons */}
-              <div style={{ marginTop: 'auto', paddingTop: '8px', display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
-                <button 
-                  onClick={() => openActionModal('deposit', safe.id)}
-                  style={{ flex: 1, padding: '6px 8px', borderRadius: '8px', border: 'none', background: 'rgba(16,185,129,0.15)', color: '#10B981', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
-                >
-                  ➕ {isAr ? 'إيداع' : 'Deposit'}
-                </button>
-                <button 
-                  onClick={() => openActionModal('withdrawal', safe.id)}
-                  style={{ flex: 1, padding: '6px 8px', borderRadius: '8px', border: 'none', background: 'rgba(239,68,68,0.15)', color: '#EF4444', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
-                >
-                  ➖ {isAr ? 'صرف' : 'Withdraw'}
-                </button>
-                <button 
-                  onClick={() => setViewSafeDetailId(safe.id)}
-                  style={{ flex: 1.2, padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--primary-color)', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
-                >
-                  📄 {isAr ? 'فتح الكشف' : 'View Ledger'}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── All Safes Overview Ledger ───────────────────────────── */}
-      <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '16px' }}>📑</span>
-            <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' }}>
-              {isAr ? 'كشف حركات ومعاملات كافة الخزائن' : 'All Safes Transaction Ledger'}
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <select className="glass-input" style={{ padding: '5px 10px', fontSize: '11px' }} value={selectedSafeId} onChange={e => setSelectedSafeId(e.target.value)}>
-              <option value="ALL">{isAr ? 'جميع الخزائن' : 'All Safes'}</option>
-              {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <button className="glass-button" style={{ padding: '5px 12px', fontSize: '11px', background: '#6366F1' }} onClick={() => window.print()}>
-              {isAr ? 'طباعة الكشف' : 'Print Ledger'}
-            </button>
-          </div>
-        </div>
-
-        <table className="custom-table">
+        <table className="print-table">
           <thead>
             <tr>
-              <th>{isAr ? 'التاريخ والوقت' : 'Date & Time'}</th>
-              <th>{isAr ? 'الخزينة' : 'Safe Name'}</th>
-              <th>{isAr ? 'نوع الحركة' : 'Movement Type'}</th>
-              <th>{isAr ? 'المبلغ (د.ل)' : 'Amount'}</th>
-              <th>{isAr ? 'البيان / الوصف' : 'Description'}</th>
-              <th>{isAr ? 'المرجع' : 'Reference'}</th>
+              <th>#</th>
+              <th>التاريخ والوقت</th>
+              <th>الخزينة</th>
+              <th>نوع الحركة</th>
+              <th>المبلغ (د.ل)</th>
+              <th>البيان / الوصف</th>
+              <th>المرجع</th>
             </tr>
           </thead>
           <tbody>
-            {filteredTransactions.length === 0 ? (
-              <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-tertiary)' }}>
-                  {isAr ? 'لا توجد حركات تسوية أو تحويلات مسجلة حتى الآن.' : 'No safe transactions logged yet.'}
-                </td>
-              </tr>
-            ) : (
-              filteredTransactions.map(tx => {
-                const isDeposit = tx.type === 'deposit' || tx.type === 'transfer_in';
-                return (
-                  <tr key={tx.id}>
-                    <td style={{ fontSize: '11px', color: 'var(--text-tertiary)' }} dir="ltr">
-                      {new Date(tx.date).toLocaleString('ar-LY')}
-                    </td>
-                    <td style={{ fontWeight: 700 }}>{tx.safeName}</td>
-                    <td>
-                      <span style={{
-                        padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
-                        background: isDeposit ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                        color: isDeposit ? '#10B981' : '#EF4444'
-                      }}>
-                        {tx.type === 'deposit' ? (isAr ? '➕ إيداع مالي' : 'Deposit') :
-                         tx.type === 'withdrawal' ? (isAr ? '➖ صرف مالي' : 'Withdrawal') :
-                         tx.type === 'transfer_in' ? (isAr ? '📥 تحويل وارد' : 'Transfer In') :
-                         (isAr ? '📤 تحويل صادر' : 'Transfer Out')}
-                      </span>
-                    </td>
-                    <td style={{ fontWeight: 800, color: isDeposit ? '#10B981' : '#EF4444' }} dir="ltr">
-                      {isDeposit ? '+' : '-'}{fmt(tx.amount)}
-                    </td>
-                    <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{tx.description}</td>
-                    <td style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{tx.ref}</td>
-                  </tr>
-                );
-              })
-            )}
+            {(txList || []).map((tx, idx) => {
+              const isDeposit = tx.type === 'deposit' || tx.type === 'transfer_in';
+              return (
+                <tr key={tx.id || idx}>
+                  <td>{idx + 1}</td>
+                  <td dir="ltr">{new Date(tx.date).toLocaleString('ar-LY')}</td>
+                  <td>{tx.safeName}</td>
+                  <td>
+                    {tx.type === 'deposit' ? 'إيداع مالي' :
+                     tx.type === 'withdrawal' ? 'صرف مالي' :
+                     tx.type === 'transfer_in' ? 'تحويل وارد' : 'تحويل صادر'}
+                  </td>
+                  <td dir="ltr" style={{ fontWeight: 'bold', color: isDeposit ? '#10B981' : '#EF4444' }}>
+                    {isDeposit ? '+' : '-'}{fmt(tx.amount)}
+                  </td>
+                  <td>{tx.description}</td>
+                  <td>{tx.ref}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-      </div>
 
-      {renderActionModals()}
-    </div>
-  );
+        <div className="print-footer-signatures">
+          <div className="print-signature-box">
+            <p style={{ fontWeight: 'bold' }}>إعداد المحاسب المسؤول:</p>
+            <div className="print-signature-line">التوقيع: .....................</div>
+          </div>
+          <div className="print-signature-box">
+            <p style={{ fontWeight: 'bold' }}>اعتماد المدير المالي:</p>
+            <div className="print-signature-line">التوقيع: .....................</div>
+          </div>
+          <div className="print-signature-box">
+            <p style={{ fontWeight: 'bold' }}>ختم الإدارة المالية:</p>
+            <div className="print-signature-line">الختم الرسمي</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Helper render for Deposit / Withdraw / Transfer / Add modals
   function renderActionModals() {
