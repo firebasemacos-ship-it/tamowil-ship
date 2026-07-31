@@ -161,56 +161,103 @@ export default function PricingManager() {
       )}
 
       {/* ══════════════ PRINTABLE PRICING REPORT (A4) ══════════════ */}
-      
-
-      <div className="printable-area hide-on-screen" dir="rtl">
-        <div className="print-header" style={{ borderBottom: '3px solid #0D7847' }}>
-          <div className="print-logo-container"><img src="/logo-color.png" alt="Tamowil Delivery" style={{ height: '80px' }} /></div>
-          <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#0D7847', margin: '10px 0 5px' }}>كشف أسعار التوصيل المعتمدة</h2>
-          <p style={{ color: '#555', fontSize: '14px' }}>شركة تمويل لخدمات الشحن والتوصيل المحدودة</p>
+      <div className="printable-area hide-on-screen" dir="rtl" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', color: '#0F172A', padding: '15px' }}>
+        
+        {/* Header Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px solid #0D7847', paddingBottom: '16px', marginBottom: '20px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <img src="/logo-color.png" alt="Tamowil Express" style={{ height: '65px', objectFit: 'contain' }} />
+              <div>
+                <h1 style={{ fontSize: '22px', fontWeight: '900', color: '#0D7847', margin: 0, letterSpacing: '-0.5px' }}>كشف أسعار ورسوم التوصيل المعتمدة</h1>
+                <p style={{ fontSize: '13px', fontWeight: '600', color: '#475569', margin: '4px 0 0' }}>شركة تمويل لخدمات الشحن والحلول اللوجستية السريعة</p>
+              </div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'left', background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '10px 16px', borderRadius: '10px' }}>
+            <div style={{ fontSize: '11px', color: '#166534', fontWeight: '700' }}>رقم الكشف: PRC-{new Date().getFullYear()}{String(new Date().getMonth() + 1).padStart(2, '0')}</div>
+            <div style={{ fontSize: '12px', color: '#0D7847', fontWeight: '800', marginTop: '2px' }}>تاريخ الإصدار: {new Date().toLocaleDateString('ar-LY')}</div>
+          </div>
         </div>
 
-        <div className="print-meta-info" style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px 20px', borderRadius: '8px', marginBottom: '20px' }}>
-          <div><span style={{ color: '#0D7847', fontWeight: 'bold' }}>تاريخ الإصدار:</span> {new Date().toLocaleDateString('ar-LY')}</div>
-          <div><span style={{ color: '#0D7847', fontWeight: 'bold' }}>عدد المدن المغطاة:</span> {pricing.length} مدينة</div>
+        {/* Stats Grid Bar */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '20px' }}>
+          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '10px 14px', borderRadius: '8px' }}>
+            <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>إجمالي المدن</div>
+            <div style={{ fontSize: '16px', color: '#0F172A', fontWeight: '800' }}>{pricing.length} مدينة</div>
+          </div>
+          <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '10px 14px', borderRadius: '8px' }}>
+            <div style={{ fontSize: '11px', color: '#166534', fontWeight: '600' }}>التغطية النشطة</div>
+            <div style={{ fontSize: '16px', color: '#15803D', fontWeight: '800' }}>{activeCount} مدينة</div>
+          </div>
+          <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '10px 14px', borderRadius: '8px' }}>
+            <div style={{ fontSize: '11px', color: '#1E40AF', fontWeight: '600' }}>متوسط أسعار التوصيل</div>
+            <div style={{ fontSize: '16px', color: '#1D4ED8', fontWeight: '800' }}>{avgFee} د.ل</div>
+          </div>
+          <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', padding: '10px 14px', borderRadius: '8px' }}>
+            <div style={{ fontSize: '11px', color: '#92400E', fontWeight: '600' }}>أعلى رسوم توصيل</div>
+            <div style={{ fontSize: '16px', color: '#B45309', fontWeight: '800' }}>{maxFee} د.ل</div>
+          </div>
         </div>
 
-        <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+        {/* Pricing Table */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', borderRadius: '8px', overflow: 'hidden', border: '1px solid #CBD5E1' }}>
           <thead>
-            <tr>
-              <th style={{ backgroundColor: '#0D7847', color: '#fff', padding: '12px', border: '1px solid #0D7847', textAlign: 'right', fontSize: '14px', width: '40%' }}>المدينة</th>
-              <th style={{ backgroundColor: '#0D7847', color: '#fff', padding: '12px', border: '1px solid #0D7847', textAlign: 'center', fontSize: '14px', width: '30%' }}>الإجمالي للزبون (د.ل)</th>
-              <th style={{ backgroundColor: '#0D7847', color: '#fff', padding: '12px', border: '1px solid #0D7847', textAlign: 'center', fontSize: '14px', width: '30%' }}>الحالة</th>
+            <tr style={{ background: '#0D7847', color: '#FFFFFF' }}>
+              <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: '800', textAlign: 'center', width: '8%', borderBottom: '2px solid #065F46' }}>#</th>
+              <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: '800', textAlign: 'right', width: '32%', borderBottom: '2px solid #065F46' }}>المدينة / المنطقة</th>
+              <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: '800', textAlign: 'center', width: '20%', borderBottom: '2px solid #065F46' }}>رسوم التوصيل</th>
+              <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: '800', textAlign: 'center', width: '20%', borderBottom: '2px solid #065F46' }}>رسوم التحصيل (COD)</th>
+              <th style={{ padding: '10px 12px', fontSize: '13px', fontWeight: '900', textAlign: 'center', width: '20%', borderBottom: '2px solid #065F46', background: '#065F46' }}>إجمالي تكلفة التوصيل</th>
             </tr>
           </thead>
           <tbody>
-            {pricing.map((c, index) => (
-              <tr key={c.city} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f9fafb' }}>
-                <td style={{ padding: '12px', border: '1px solid #d1d5db', fontWeight: 'bold', color: '#111' }}>{c.city}</td>
-                <td dir="ltr" style={{ padding: '12px', border: '1px solid #d1d5db', fontWeight: 'bold', textAlign: 'center', color: '#111' }}>{c.fee + c.codFee}</td>
-                <td style={{ padding: '12px', border: '1px solid #d1d5db', textAlign: 'center', color: c.active ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>{c.active ? 'مُفعل' : 'مُعطل'}</td>
+            {pricing.map((c, idx) => (
+              <tr key={c.city} style={{ background: idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                <td style={{ padding: '9px 12px', textAlign: 'center', fontSize: '12px', color: '#64748B', fontWeight: '700' }}>{idx + 1}</td>
+                <td style={{ padding: '9px 12px', textAlign: 'right', fontSize: '13px', color: '#0F172A', fontWeight: '800' }}>
+                  {c.city}
+                  {!c.active && <span style={{ marginRight: '8px', fontSize: '10px', background: '#FEE2E2', color: '#991B1B', padding: '2px 6px', borderRadius: '4px' }}>غير متوفر</span>}
+                </td>
+                <td style={{ padding: '9px 12px', textAlign: 'center', fontSize: '13px', color: '#15803D', fontWeight: '700' }} dir="ltr">{c.fee} د.ل</td>
+                <td style={{ padding: '9px 12px', textAlign: 'center', fontSize: '13px', color: '#475569', fontWeight: '600' }} dir="ltr">{c.codFee} د.ل</td>
+                <td style={{ padding: '9px 12px', textAlign: 'center', fontSize: '14px', color: '#0D7847', fontWeight: '900', background: idx % 2 === 0 ? '#F0FDF4' : '#DCFCE7' }} dir="ltr">
+                  {c.fee + c.codFee} د.ل
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        <div style={{ marginTop: '30px', padding: '15px', background: '#f1f5f9', borderLeft: '4px solid #0D7847', borderRadius: '4px', fontSize: '12px', color: '#334155' }}>
-          <strong>ملاحظة هامة:</strong> الأسعار المذكورة أعلاه تشمل رسوم التوصيل وعمولة التحصيل (COD)، وقد تخضع للتعديل بناءً على سياسة الشركة.
+        {/* Policy Note Box */}
+        <div style={{ marginTop: '24px', padding: '14px 18px', background: '#F1F5F9', borderRight: '4px solid #0D7847', borderRadius: '8px', fontSize: '11px', color: '#334155', lineHeight: '1.6' }}>
+          <strong style={{ color: '#0D7847', fontSize: '12px' }}>💡 الشروط والتعليمات التنظيمية:</strong>
+          <ul style={{ margin: '4px 0 0', paddingRight: '18px' }}>
+            <li>الأسعار المبينة أعلاه معتمدة ورسمية ومحتسبة بالدينار الليبي (د.ل).</li>
+            <li>يتم تحصيل رسوم الخدمة وفق الإجمالي الموضح شامل التوصيل المباشر وعمولة التحصيل.</li>
+            <li>أي تغيير أو تعديل على جدول الأسعار يتطلب اعتماد الإدارة المالية والمدير التنفيذي لشركة تمويل.</li>
+          </ul>
         </div>
 
-        <div className="print-footer-signatures" style={{ marginTop: '60px', display: 'flex', justifyContent: 'space-between', padding: '0 20px' }}>
-          <div className="print-signature-box">
-            <div className="print-signature-line">توقيع المستلم</div>
+        {/* Signatures & Seals Section */}
+        <div style={{ marginTop: '45px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', textAlign: 'center' }}>
+          <div style={{ border: '1px dashed #CBD5E1', padding: '15px', borderRadius: '10px', background: '#FAFAFA' }}>
+            <div style={{ fontSize: '12px', fontWeight: '800', color: '#0F172A', marginBottom: '40px' }}>اعتماد مدير العمليات</div>
+            <div style={{ borderTop: '1px solid #94A3B8', paddingTop: '6px', fontSize: '11px', color: '#64748B' }}>التوقيع والتاريخ</div>
           </div>
-          <div className="print-signature-box">
-            <div className="print-signature-line">ختم الشركة</div>
+          <div style={{ border: '1px dashed #CBD5E1', padding: '15px', borderRadius: '10px', background: '#FAFAFA' }}>
+            <div style={{ fontSize: '12px', fontWeight: '800', color: '#0F172A', marginBottom: '40px' }}>ختم الشركة الرسمي</div>
+            <div style={{ borderTop: '1px solid #94A3B8', paddingTop: '6px', fontSize: '11px', color: '#64748B' }}>شركة تمويل للتوصيل السريع</div>
           </div>
-          <div className="print-signature-box">
-            <div className="print-signature-line">المدير المالي</div>
+          <div style={{ border: '1px dashed #CBD5E1', padding: '15px', borderRadius: '10px', background: '#FAFAFA' }}>
+            <div style={{ fontSize: '12px', fontWeight: '800', color: '#0F172A', marginBottom: '40px' }}>اعتماد الشؤون المالية</div>
+            <div style={{ borderTop: '1px solid #94A3B8', paddingTop: '6px', fontSize: '11px', color: '#64748B' }}>التوقيع والتاريخ</div>
           </div>
         </div>
-        <div className="print-footer-note">
-          شكراً لتعاملكم مع شركة تمويل للتوصيل السريع - نظام إدارة العمليات الذكي
+
+        {/* Footer Note */}
+        <div style={{ marginTop: '25px', textTransform: 'uppercase', fontSize: '10px', color: '#94A3B8', textAlign: 'center', borderTop: '1px solid #E2E8F0', paddingTop: '10px' }}>
+          Tamowil Logistics & Delivery System — Official Approved Pricing Report — Page 1 of 1
         </div>
       </div>
     </div>
