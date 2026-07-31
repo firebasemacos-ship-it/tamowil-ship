@@ -712,20 +712,40 @@ const SAFES_STORAGE_KEY = 'tamowil_safes_v1';
 const SAFES_TX_STORAGE_KEY = 'tamowil_safes_tx_v1';
 
 const DEFAULT_SAFES = [
-  { id: 'SAFE-001', name: 'الخزينة الرئيسية (المركز)', code: 'SAFE-MAIN', branch: 'المركز الرئيسي', balance: 15000, active: true, notes: 'خزينة السيولة النقدية الرئيسية' },
-  { id: 'SAFE-002', name: 'خزينة فرع طرابلس', code: 'SAFE-TRIPOLI', branch: 'طرابلس', balance: 8500, active: true, notes: 'خزينة استلام العهد اليومية' },
-  { id: 'SAFE-003', name: 'خزينة فرع بنغازي', code: 'SAFE-BEN', branch: 'بنغازي', balance: 5200, active: true, notes: 'خزينة التوصيل والتسويات' },
-  { id: 'SAFE-004', name: 'حساب المصرف / سداد', code: 'BANK-SADAD', branch: 'إلكتروني', balance: 12300, active: true, notes: 'حساب التحويلات المصرفية والسداد الإلكتروني' }
+  { id: 'SAFE-001', name: 'الخزينة الرئيسية (المركز)', code: 'SAFE-MAIN', branch: 'المركز الرئيسي', initialBalance: 0, balance: 0, active: true, notes: 'خزينة السيولة النقدية الرئيسية' },
+  { id: 'SAFE-002', name: 'خزينة فرع طرابلس', code: 'SAFE-TRIPOLI', branch: 'طرابلس', initialBalance: 0, balance: 0, active: true, notes: 'خزينة استلام العهد اليومية' },
+  { id: 'SAFE-003', name: 'خزينة فرع بنغازي', code: 'SAFE-BEN', branch: 'بنغازي', initialBalance: 0, balance: 0, active: true, notes: 'خزينة التوصيل والتسويات' },
+  { id: 'SAFE-004', name: 'حساب المصرف / سداد', code: 'BANK-SADAD', branch: 'إلكتروني', initialBalance: 0, balance: 0, active: true, notes: 'حساب التحويلات المصرفية والسداد الإلكتروني' }
 ];
 
 export async function getSafes() {
   if (typeof window === 'undefined') return DEFAULT_SAFES;
+  let safes = [];
   const stored = localStorage.getItem(SAFES_STORAGE_KEY);
   if (stored) {
-    return JSON.parse(stored);
+    safes = JSON.parse(stored);
+  } else {
+    safes = DEFAULT_SAFES;
+    localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(DEFAULT_SAFES));
   }
-  localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(DEFAULT_SAFES));
-  return DEFAULT_SAFES;
+
+  // Recalculate real dynamic balance from actual logged safe transactions
+  const txs = await getSafeTransactions();
+  return safes.map(s => {
+    const safeTxs = txs.filter(t => t.safeId === s.id);
+    const deposits = safeTxs
+      .filter(t => t.type === 'deposit' || t.type === 'transfer_in')
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const withdrawals = safeTxs
+      .filter(t => t.type === 'withdrawal' || t.type === 'transfer_out')
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+    const initial = Number(s.initialBalance || 0);
+    return {
+      ...s,
+      balance: Math.max(0, initial + deposits - withdrawals)
+    };
+  });
 }
 
 export async function saveSafes(safes) {
@@ -735,12 +755,14 @@ export async function saveSafes(safes) {
 
 export async function addSafe(safeData) {
   const safes = await getSafes();
+  const initialVal = Number(safeData.initialBalance || 0);
   const newSafe = {
     id: `SAFE-${Date.now()}`,
     name: safeData.name,
     code: safeData.code || `SAFE-${Math.floor(100 + Math.random() * 900)}`,
     branch: safeData.branch || 'الفرع الرئيسي',
-    balance: Number(safeData.initialBalance || 0),
+    initialBalance: initialVal,
+    balance: initialVal,
     active: true,
     notes: safeData.notes || ''
   };
@@ -748,11 +770,11 @@ export async function addSafe(safeData) {
   await saveSafes(safes);
 
   // Log initial balance transaction if > 0
-  if (newSafe.balance > 0) {
+  if (initialVal > 0) {
     await recordSafeTransaction({
       safeId: newSafe.id,
       type: 'deposit',
-      amount: newSafe.balance,
+      amount: initialVal,
       description: 'الرصيد الافتتاحي عند إنشاء الخزينة',
       ref: 'INITIAL'
     });
