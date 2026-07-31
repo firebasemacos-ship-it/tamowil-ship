@@ -199,9 +199,7 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
       .eq('tracking_number', trackingNumber)
       .single();
 
-    if (sh) {
-      const collectedAmt = Number(sh.price || 0) || (Number(sh.product_price || 0) + Number(sh.delivery_fee || 0) + Number(sh.cod_fee || 0));
-
+      if (sh) {
       // 1. Record Merchant Credit Transaction
       const { data: existingTx } = await supabase
         .from('transactions')
@@ -221,15 +219,20 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
         });
       }
 
-      // 2. Automatically Record Value into Drivers Custody Safe (SAFE-005)
+      // Calculate net COD amount (excluding delivery fee which belongs to the driver)
+      const netCustodyAmt = (sh.delivery_charge_on === 'المرسل')
+        ? Number(sh.price || 0)
+        : Math.max(0, (Number(sh.price || 0) > 0 ? Number(sh.price) - Number(sh.delivery_fee || 0) : Number(sh.product_price || 0)));
+
+      // 2. Automatically Record Net COD Value into Drivers Custody Safe (SAFE-005)
       const safeTxs = await getSafeTransactions();
       const alreadySafeRecorded = safeTxs.some(t => t.ref === trackingNumber && t.type === 'deposit');
-      if (!alreadySafeRecorded && collectedAmt > 0) {
+      if (!alreadySafeRecorded && netCustodyAmt > 0) {
         await recordSafeTransaction({
           safeId: 'SAFE-005',
           type: 'deposit',
-          amount: collectedAmt,
-          description: `عُهدة ميدانية مع السائق - تحصيل شحنة مسلّمة (${trackingNumber})`,
+          amount: netCustodyAmt,
+          description: `عُهدة ميدانية مع السائق (صافي البضاعة بدون أجرة التوصيل) - (${trackingNumber})`,
           ref: trackingNumber
         });
       }
@@ -783,15 +786,18 @@ export async function getSafes() {
         const trk = sh.tracking_number;
         const alreadyRecorded = txs.some(t => t.ref === trk && t.type === 'deposit');
         if (!alreadyRecorded) {
-          const amt = Number(sh.price || 0) || (Number(sh.product_price || 0) + Number(sh.delivery_fee || 0) + Number(sh.cod_fee || 0));
-          if (amt > 0) {
+          const netCustodyAmt = (sh.delivery_charge_on === 'المرسل')
+            ? Number(sh.price || 0)
+            : Math.max(0, (Number(sh.price || 0) > 0 ? Number(sh.price) - Number(sh.delivery_fee || 0) : Number(sh.product_price || 0)));
+
+          if (netCustodyAmt > 0) {
             const newTx = {
               id: `STX-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
               safeId: 'SAFE-005',
               safeName: safeObj?.name || 'خزينة عُهد السائقين (العهد الميدانية)',
               type: 'deposit',
-              amount: amt,
-              description: `عُهدة ميدانية مع السائق - شحنة مسلّمة (${trk})`,
+              amount: netCustodyAmt,
+              description: `عُهدة ميدانية مع السائق (صافي البضاعة بدون أجرة التوصيل) - (${trk})`,
               ref: trk,
               date: new Date().toISOString()
             };
