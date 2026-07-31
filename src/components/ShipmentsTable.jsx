@@ -143,7 +143,6 @@ export default function ShipmentsTable() {
     setSelectedForBulk([]);
     setBulkStatus('');
     setBulkNote('');
-    alert(isAr ? `تم تحديث حالة ${count} شحنة بنجاح وحفظ الملاحظات!` : `Updated status for ${count} shipments successfully!`);
   };
   const [bulkSelectedStatus, setBulkSelectedStatus] = useState('In Warehouse');
   const [isProcessingBulkModal, setIsProcessingBulkModal] = useState(false);
@@ -225,7 +224,6 @@ export default function ShipmentsTable() {
     setShowBulkStatusModal(false);
     setBulkInputTrackings('');
     setSelectedForBulk([]);
-    alert(isAr ? `تم تحديث حالة ${updatedCount} شحنة بنجاح إلى (${bulkSelectedStatus})` : `Successfully updated ${updatedCount} shipments to ${bulkSelectedStatus}`);
   };
 
   const handleToggleSelectAll = (e) => {
