@@ -120,8 +120,31 @@ export default function ShipmentsTable() {
   const [editForm, setEditForm] = useState(null);
   const [bulkDriverId, setBulkDriverId] = useState('');
   const [bulkStatus, setBulkStatus] = useState('');
+  const [bulkNote, setBulkNote] = useState('');
   const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
   const [bulkInputTrackings, setBulkInputTrackings] = useState('');
+
+  const handleBulkStatusUpdate = async () => {
+    if (!bulkStatus || selectedForBulk.length === 0) return;
+    const count = selectedForBulk.length;
+    const noteText = bulkNote.trim() 
+      ? bulkNote.trim() 
+      : (isAr ? `تحديث جماعي للحالة إلى ${statusLabel(bulkStatus)}` : `Bulk status update to ${bulkStatus}`);
+    
+    for (const tracking of selectedForBulk) {
+      await updateShipmentStatus(
+        tracking,
+        bulkStatus,
+        'مركز العمليات الرئيسي',
+        noteText,
+        noteText
+      );
+    }
+    setSelectedForBulk([]);
+    setBulkStatus('');
+    setBulkNote('');
+    alert(isAr ? `تم تحديث حالة ${count} شحنة بنجاح وحفظ الملاحظات!` : `Updated status for ${count} shipments successfully!`);
+  };
   const [bulkSelectedStatus, setBulkSelectedStatus] = useState('In Warehouse');
   const [isProcessingBulkModal, setIsProcessingBulkModal] = useState(false);
 
@@ -264,23 +287,6 @@ export default function ShipmentsTable() {
     setSelectedForBulk([]);
     setBulkDriverId('');
     alert(isAr ? 'تم الإسناد بنجاح' : 'Assigned successfully');
-  };
-
-  const handleBulkStatusUpdate = async () => {
-    if (!bulkStatus || selectedForBulk.length === 0) return;
-    const count = selectedForBulk.length;
-    for (const tracking of selectedForBulk) {
-      await updateShipmentStatus(
-        tracking,
-        bulkStatus,
-        'Sorting Hub',
-        `تحديث جماعي للحالة إلى ${bulkStatus}`,
-        `Bulk status update to ${bulkStatus}`
-      );
-    }
-    setSelectedForBulk([]);
-    setBulkStatus('');
-    alert(isAr ? `تم تحديث حالة ${count} شحنة بنجاح` : `Updated status for ${count} shipments successfully`);
   };
 
   const handlePrintManifest = () => {
@@ -456,6 +462,14 @@ export default function ShipmentsTable() {
                 <option key={st.key} value={st.key}>{isAr ? st.ar : st.en}</option>
               ))}
             </select>
+            <input
+              type="text"
+              className="glass-input"
+              style={{ width: 200, padding: '6px 10px', fontSize: 12 }}
+              placeholder={isAr ? 'ملاحظة التحديث (اختياري)...' : 'Update note (optional)...'}
+              value={bulkNote}
+              onChange={e => setBulkNote(e.target.value)}
+            />
             <button onClick={handleBulkStatusUpdate} className="text-xs px-3 py-1.5 rounded-lg border font-semibold cursor-pointer" style={{ backgroundColor: '#10B981', borderColor: 'transparent', color: '#FFF' }}>
               {isAr ? 'تحديث الحالة' : 'Update Status'}
             </button>
