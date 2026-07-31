@@ -180,25 +180,7 @@ export default function PricingManager() {
           </div>
         </div>
 
-        {/* Stats Grid Bar */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '20px' }}>
-          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '10px 14px', borderRadius: '8px' }}>
-            <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>إجمالي المدن</div>
-            <div style={{ fontSize: '16px', color: '#0F172A', fontWeight: '800' }}>{pricing.length} مدينة</div>
-          </div>
-          <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '10px 14px', borderRadius: '8px' }}>
-            <div style={{ fontSize: '11px', color: '#166534', fontWeight: '600' }}>التغطية النشطة</div>
-            <div style={{ fontSize: '16px', color: '#15803D', fontWeight: '800' }}>{activeCount} مدينة</div>
-          </div>
-          <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '10px 14px', borderRadius: '8px' }}>
-            <div style={{ fontSize: '11px', color: '#1E40AF', fontWeight: '600' }}>متوسط أسعار التوصيل</div>
-            <div style={{ fontSize: '16px', color: '#1D4ED8', fontWeight: '800' }}>{avgFee} د.ل</div>
-          </div>
-          <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', padding: '10px 14px', borderRadius: '8px' }}>
-            <div style={{ fontSize: '11px', color: '#92400E', fontWeight: '600' }}>أعلى رسوم توصيل</div>
-            <div style={{ fontSize: '16px', color: '#B45309', fontWeight: '800' }}>{maxFee} د.ل</div>
-          </div>
-        </div>
+
 
         {/* Pricing Table */}
         <table style={{ width: '100%', borderCollapse: 'collapse', borderRadius: '8px', overflow: 'hidden', border: '1px solid #CBD5E1' }}>
