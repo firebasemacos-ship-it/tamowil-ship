@@ -996,6 +996,17 @@ export async function addSafe(safeData) {
 
   // Persist Safe Definition into Supabase DB
   try {
+    await supabase.from('safes').insert({
+      id: newSafe.id,
+      name: newSafe.name,
+      code: newSafe.code,
+      branch: newSafe.branch,
+      initial_balance: initialVal,
+      balance: initialVal,
+      active: true,
+      notes: newSafe.notes || ''
+    });
+
     await supabase.from('transactions').insert({
       id: `SAFE_DEF_${newSafe.id}`,
       type: 'safe_definition',
@@ -1037,7 +1048,19 @@ export async function recordSafeTransaction({ safeId, type, amount, description,
   const descStr = description || 'معاملة خزينة';
   const refStr = ref || 'SYS';
 
-  // Persist Transaction into Supabase DB
+  // Persist Transaction into Supabase DB (both dedicated & fallback tables)
+  try {
+    await supabase.from('safe_transactions').insert({
+      id: txId,
+      safe_id: safeId,
+      safe_name: safeObj?.name || safeId,
+      type,
+      amount: amtVal,
+      description: descStr,
+      reference: refStr
+    });
+  } catch (e) {}
+
   try {
     await supabase.from('transactions').insert({
       id: txId,
