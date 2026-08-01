@@ -3,17 +3,27 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 
 export default function SafesManager() {
-  const { lang, safes, safeTransactions, addSafe, recordSafeTransaction, transferBetweenSafes } = useApp();
+  const { lang, safes, safeTransactions, addSafe, updateSafe, deleteSafe, recordSafeTransaction, transferBetweenSafes } = useApp();
   const isAr = lang === 'ar';
   const fmt = v => `${Number(v || 0).toLocaleString('ar-LY')} ${isAr ? 'د.ل' : 'LYD'}`;
 
   const [selectedSafeId, setSelectedSafeId]   = useState('ALL');
   const [viewSafeDetailId, setViewSafeDetailId] = useState(null); // ID of safe opened in full page mode
   const [showAddModal, setShowAddModal]       = useState(false);
+  const [showEditModal, setShowEditModal]     = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(null); // 'deposit' | 'withdrawal' | null
 
   const [newSafeForm, setNewSafeForm] = useState({
+    name: '',
+    code: '',
+    branch: '',
+    initialBalance: '',
+    notes: ''
+  });
+
+  const [editSafeForm, setEditSafeForm] = useState({
+    id: '',
     name: '',
     code: '',
     branch: '',
@@ -99,6 +109,25 @@ export default function SafesManager() {
     setShowAddModal(false);
   }
 
+  function openEditModal(safe) {
+    setEditSafeForm({
+      id: safe.id,
+      name: safe.name || '',
+      code: safe.code || '',
+      branch: safe.branch || '',
+      initialBalance: safe.initialBalance || 0,
+      notes: safe.notes || ''
+    });
+    setShowEditModal(true);
+  }
+
+  function handleEditSafeSubmit(e) {
+    e.preventDefault();
+    if (!editSafeForm.id || !editSafeForm.name) return;
+    updateSafe(editSafeForm.id, editSafeForm);
+    setShowEditModal(false);
+  }
+
   function handleTransferSubmit(e) {
     e.preventDefault();
     if (!transferForm.fromSafeId || !transferForm.toSafeId || !transferForm.amount) return;
@@ -151,6 +180,9 @@ export default function SafesManager() {
             </div>
 
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button className="glass-button" style={{ background: 'var(--primary-color)', color: '#fff' }} onClick={() => openEditModal(activeDetailSafe)}>
+                ✏️ {isAr ? 'تعديل بيانات الخزينة' : 'Edit Safe'}
+              </button>
               <button className="glass-button" style={{ background: '#10B981', color: '#fff' }} onClick={() => openActionModal('deposit', activeDetailSafe.id)}>
                 ➕ {isAr ? 'إيداع مالي' : 'Deposit'}
               </button>
@@ -360,6 +392,13 @@ export default function SafesManager() {
                 {/* Safe Action Buttons */}
                 <div style={{ marginTop: 'auto', paddingTop: '8px', display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
                   <button 
+                    onClick={() => openEditModal(safe)}
+                    style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.06)', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                    title={isAr ? 'تعديل بيانات الخزينة' : 'Edit Safe'}
+                  >
+                    ✏️
+                  </button>
+                  <button 
                     onClick={() => openActionModal('deposit', safe.id)}
                     style={{ flex: 1, padding: '6px 8px', borderRadius: '8px', border: 'none', background: 'rgba(16,185,129,0.15)', color: '#10B981', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
                   >
@@ -548,6 +587,60 @@ export default function SafesManager() {
   function renderActionModals() {
     return (
       <>
+        {/* ── Modal: Edit Safe ───────────────────────────────────── */}
+        {showEditModal && (
+          <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+            <div className="modal-content glass-panel" style={{ padding: '28px', maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+              <h3 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>✏️</span> {isAr ? 'تعديل بيانات الخزينة والرصيد' : 'Edit Safe & Initial Balance'}
+              </h3>
+              <form onSubmit={handleEditSafeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'اسم الخزينة' : 'Safe Name'}
+                  </label>
+                  <input required className="glass-input w-full" value={editSafeForm.name} onChange={e => setEditSafeForm(p => ({ ...p, name: e.target.value }))} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                      {isAr ? 'كود الخزينة' : 'Code'}
+                    </label>
+                    <input className="glass-input w-full" value={editSafeForm.code} onChange={e => setEditSafeForm(p => ({ ...p, code: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                      {isAr ? 'الفرع' : 'Branch'}
+                    </label>
+                    <input className="glass-input w-full" value={editSafeForm.branch} onChange={e => setEditSafeForm(p => ({ ...p, branch: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'الرصيد الافتتاحي (د.ل)' : 'Initial Balance (LYD)'}
+                  </label>
+                  <input type="number" min="0" className="glass-input w-full" value={editSafeForm.initialBalance} onChange={e => setEditSafeForm(p => ({ ...p, initialBalance: e.target.value }))} />
+                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>{isAr ? 'سيتم تحديث الرصيد الافتتاحي المخزن في قاعدة البيانات.' : 'Will update initial balance in DB.'}</span>
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    {isAr ? 'ملاحظات / وصف' : 'Notes'}
+                  </label>
+                  <textarea rows={2} className="glass-input w-full" value={editSafeForm.notes} onChange={e => setEditSafeForm(p => ({ ...p, notes: e.target.value }))} />
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                  <button type="button" className="glass-button w-full" onClick={() => setShowEditModal(false)}>
+                    {isAr ? 'إلغاء' : 'Cancel'}
+                  </button>
+                  <button type="submit" className="glass-button w-full" style={{ background: 'var(--primary-color)', color: '#fff' }}>
+                    💾 {isAr ? 'حفظ التغييرات' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* ── Modal: Manual Deposit / Withdrawal ──────────────────── */}
         {showActionModal && (
           <div className="modal-overlay" onClick={() => setShowActionModal(null)}>

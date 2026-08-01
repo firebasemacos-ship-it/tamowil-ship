@@ -1036,6 +1036,53 @@ export async function addSafe(safeData) {
   return getSafes();
 }
 
+export async function updateSafe(safeId, updatedFields) {
+  const initialVal = Number(updatedFields.initialBalance || 0);
+
+  // Update in Supabase DB dedicated table
+  try {
+    await supabase.from('safes').update({
+      name: updatedFields.name,
+      code: updatedFields.code,
+      branch: updatedFields.branch,
+      initial_balance: initialVal,
+      notes: updatedFields.notes
+    }).eq('id', safeId);
+  } catch (e) {}
+
+  // Local storage update
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(SAFES_STORAGE_KEY);
+    let safes = stored ? JSON.parse(stored) : [...DEFAULT_SAFES];
+    const idx = safes.findIndex(s => s.id === safeId);
+    if (idx !== -1) {
+      safes[idx] = { ...safes[idx], ...updatedFields, initialBalance: initialVal };
+      localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(safes));
+    }
+  }
+
+  return getSafes();
+}
+
+export async function deleteSafe(safeId) {
+  if (safeId === 'SAFE-001' || safeId === 'SAFE-005') return getSafes();
+
+  try {
+    await supabase.from('safes').delete().eq('id', safeId);
+    await supabase.from('safe_transactions').delete().eq('safe_id', safeId);
+  } catch (e) {}
+
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(SAFES_STORAGE_KEY);
+    if (stored) {
+      let safes = JSON.parse(stored).filter(s => s.id !== safeId);
+      localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(safes));
+    }
+  }
+
+  return getSafes();
+}
+
 export async function recordSafeTransaction({ safeId, type, amount, description, ref }) {
   let safes = [];
   const storedSafes = typeof window !== 'undefined' ? localStorage.getItem(SAFES_STORAGE_KEY) : null;
