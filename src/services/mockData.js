@@ -322,11 +322,11 @@ export async function toggleUserVerification(id) {
 
         const msgText = `🎉 مرحباً *${m.store_name}*، تم تفعيل حسابك بنجاح من قبل الإدارة! يمكنك الآن تسجيل الدخول إلى لوحة التحكم واستخدام التطبيق.\n\nHello *${m.store_name}*, your account has been successfully approved and activated by the administration! You can now log in to the dashboard and start using the app.`;
 
-        await fetch('https://expensive-michelle-huwiyyaa-4d991118.koyeb.app/message/sendText/Tamowil', {
+        await fetch('https://expensive-michelle-huwiyyaa-4d991118.koyeb.app/message/sendText/tamowil', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': '66A834200160-4DA1-A15F-0F10C44B8A98'
+            'apikey': '93AA898378E7-45D8-9D3D-E437067B4B74'
           },
           body: JSON.stringify({
             number: formattedNumber,
