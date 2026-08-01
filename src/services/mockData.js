@@ -735,10 +735,7 @@ export async function deleteEmployee(id) {
   return filtered;
 }
 
-// ─── Safes / Treasury System (Supabase Database Persistence) ─────────
-const SAFES_STORAGE_KEY = 'tamowil_safes_v1';
-const SAFES_TX_STORAGE_KEY = 'tamowil_safes_tx_v1';
-
+// ─── Safes / Treasury System (100% Supabase Database Direct) ─────────
 const DEFAULT_SAFES = [
   { id: 'SAFE-001', name: 'الخزينة الرئيسية (المركز)', code: 'SAFE-MAIN', branch: 'المركز الرئيسي', initialBalance: 0, balance: 0, active: true, notes: 'خزينة السيولة النقدية الرئيسية في المقر' },
   { id: 'SAFE-005', name: 'خزينة عُهد السائقين (العهد الميدانية)', code: 'SAFE-DRIVERS', branch: 'ميداني / السائقين', initialBalance: 0, balance: 0, active: true, notes: 'إجمالي المبالغ النقدية المتداولة كـ عُهد مع السائقين قبل التسوية' },
@@ -750,14 +747,14 @@ const DEFAULT_SAFES = [
 export async function getSafeTransactions() {
   let txs = [];
 
-  // 1. Try fetching from dedicated safe_transactions table if exists
+  // 1. Fetch from dedicated safe_transactions table in Supabase DB
   try {
     const { data: dedicatedTxs, error: dedicatedErr } = await supabase
       .from('safe_transactions')
       .select('*')
       .order('date', { ascending: false });
 
-    if (!dedicatedErr && dedicatedTxs && dedicatedTxs.length > 0) {
+    if (!dedicatedErr && dedicatedTxs) {
       txs = dedicatedTxs.map(t => ({
         id: t.id,
         safeId: t.safe_id,
@@ -768,20 +765,21 @@ export async function getSafeTransactions() {
         ref: t.reference,
         date: t.date || new Date().toISOString()
       }));
-      return txs;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Fetch safe_transactions error:', e);
+  }
 
-  // 2. Fetch safe transactions from Supabase transactions table
+  // 2. Fetch from Supabase transactions table as backup
   try {
-    const { data: dbTxs, error } = await supabase
+    const { data: dbTxs } = await supabase
       .from('transactions')
       .select('*')
       .in('type', ['safe_deposit', 'safe_withdrawal', 'safe_transfer_in', 'safe_transfer_out'])
       .order('date', { ascending: false });
 
-    if (!error && dbTxs) {
-      txs = dbTxs.map(t => {
+    if (dbTxs && dbTxs.length > 0) {
+      for (const t of dbTxs) {
         let safeId = t.merchant_id || 'SAFE-001';
         let safeName = 'الخزينة';
         let ref = t.reference || t.id;
@@ -794,43 +792,31 @@ export async function getSafeTransactions() {
         }
 
         const rawType = (t.type || '').replace('safe_', '');
-        return {
-          id: t.id,
-          safeId,
-          safeName,
-          type: rawType, // deposit | withdrawal | transfer_in | transfer_out
-          amount: Number(t.amount || 0),
-          description: t.type_ar || 'معاملة خزينة',
-          ref,
-          date: t.date || new Date().toISOString()
-        };
-      });
-    }
-  } catch (err) {
-    console.warn('Fetch safe transactions from Supabase error:', err);
-  }
-
-  // Fallback / merge with local storage
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem(SAFES_TX_STORAGE_KEY);
-    if (stored) {
-      const localTxs = JSON.parse(stored);
-      for (const lt of localTxs) {
-        if (!txs.some(t => t.id === lt.id || (t.ref === lt.ref && t.type === lt.type))) {
-          txs.push(lt);
+        if (!txs.some(x => x.id === t.id)) {
+          txs.push({
+            id: t.id,
+            safeId,
+            safeName,
+            type: rawType,
+            amount: Number(t.amount || 0),
+            description: t.type_ar || 'معاملة خزينة',
+            ref,
+            date: t.date || new Date().toISOString()
+          });
         }
       }
     }
-    localStorage.setItem(SAFES_TX_STORAGE_KEY, JSON.stringify(txs));
+  } catch (err) {
+    console.warn('Fetch transactions backup error:', err);
   }
 
-  return txs;
+  return txs.sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
 export async function getSafes() {
-  let safes = [...DEFAULT_SAFES];
+  let safes = [];
 
-  // 1. Try fetching from dedicated safes table if exists
+  // 1. Fetch from dedicated safes table in Supabase DB
   try {
     const { data: dedicatedSafes, error: dedicatedErr } = await supabase
       .from('safes')
@@ -850,45 +836,15 @@ export async function getSafes() {
     }
   } catch (e) {}
 
-  // 2. Fetch custom safe definitions from Supabase DB (transactions table fallback)
-  try {
-    const { data: dbDefs } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('type', 'safe_definition');
-
-    if (dbDefs && dbDefs.length > 0) {
-      for (const d of dbDefs) {
-        try {
-          const parsedSafe = typeof d.type_ar === 'string' ? JSON.parse(d.type_ar) : d.type_ar;
-          if (parsedSafe && parsedSafe.id && !safes.some(s => s.id === parsedSafe.id)) {
-            safes.push(parsedSafe);
-          }
-        } catch (e) {}
-      }
-    }
-  } catch (err) {
-    console.warn('Fetch custom safes from Supabase error:', err);
+  // Fallback to DEFAULT_SAFES if table empty
+  if (safes.length === 0) {
+    safes = [...DEFAULT_SAFES];
   }
 
-  // 3. Fetch local storage custom safes
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem(SAFES_STORAGE_KEY);
-    if (stored) {
-      const localSafes = JSON.parse(stored);
-      for (const ls of localSafes) {
-        if (!safes.some(s => s.id === ls.id)) {
-          safes.push(ls);
-        }
-      }
-    }
-    localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(safes));
-  }
-
-  // 4. Fetch all safe transactions from Supabase DB & local
+  // 2. Fetch all safe transactions 100% live from Supabase DB
   let txs = await getSafeTransactions();
 
-  // 5. Auto-sync all delivered shipments from Supabase to SAFE-005 (Drivers Custody Safe)
+  // 3. Auto-sync delivered shipments live from Supabase shipments table
   try {
     const { data: deliveredShipments } = await supabase
       .from('shipments')
@@ -896,7 +852,6 @@ export async function getSafes() {
       .in('status', ['Delivered', 'تم التسليم']);
 
     if (deliveredShipments && deliveredShipments.length > 0) {
-      let newlyRecorded = false;
       const safeObj = safes.find(s => s.id === 'SAFE-005');
       for (const sh of deliveredShipments) {
         const trk = sh.tracking_number;
@@ -910,20 +865,16 @@ export async function getSafes() {
             const txId = `STX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
             const desc = `عُهدة ميدانية مع السائق (صافي البضاعة بدون أجرة التوصيل) - (${trk})`;
             
-            // Try inserting into dedicated safe_transactions table
-            try {
-              await supabase.from('safe_transactions').insert({
-                id: txId,
-                safe_id: 'SAFE-005',
-                safe_name: safeObj?.name || 'خزينة عُهد السائقين',
-                type: 'deposit',
-                amount: netCustodyAmt,
-                description: desc,
-                reference: trk
-              });
-            } catch (e) {}
+            await supabase.from('safe_transactions').insert({
+              id: txId,
+              safe_id: 'SAFE-005',
+              safe_name: safeObj?.name || 'خزينة عُهد السائقين',
+              type: 'deposit',
+              amount: netCustodyAmt,
+              description: desc,
+              reference: trk
+            });
 
-            // Log to Supabase transactions DB
             await supabase.from('transactions').insert({
               id: txId,
               type: 'safe_deposit',
@@ -934,7 +885,7 @@ export async function getSafes() {
               merchant_id: 'SAFE-005'
             });
 
-            const newTx = {
+            txs.unshift({
               id: txId,
               safeId: 'SAFE-005',
               safeName: safeObj?.name || 'خزينة عُهد السائقين (العهد الميدانية)',
@@ -943,21 +894,16 @@ export async function getSafes() {
               description: desc,
               ref: trk,
               date: new Date().toISOString()
-            };
-            txs.unshift(newTx);
-            newlyRecorded = true;
+            });
           }
         }
-      }
-      if (newlyRecorded && typeof window !== 'undefined') {
-        localStorage.setItem(SAFES_TX_STORAGE_KEY, JSON.stringify(txs));
       }
     }
   } catch (err) {
     console.warn('Sync delivered shipments to safes error:', err);
   }
 
-  // 6. Recalculate real dynamic balance from actual logged safe transactions
+  // 4. Recalculate dynamic balance 100% from actual logged DB transactions
   return safes.map(s => {
     const safeTxs = txs.filter(t => t.safeId === s.id);
     const deposits = safeTxs
@@ -975,13 +921,7 @@ export async function getSafes() {
   });
 }
 
-export async function saveSafes(safes) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(safes));
-}
-
 export async function addSafe(safeData) {
-  const safes = await getSafes();
   const initialVal = Number(safeData.initialBalance || 0);
   const newSafe = {
     id: `SAFE-${Date.now()}`,
@@ -994,7 +934,7 @@ export async function addSafe(safeData) {
     notes: safeData.notes || ''
   };
 
-  // Persist Safe Definition into Supabase DB
+  // Insert Safe into Supabase DB safes table
   try {
     await supabase.from('safes').insert({
       id: newSafe.id,
@@ -1006,21 +946,9 @@ export async function addSafe(safeData) {
       active: true,
       notes: newSafe.notes || ''
     });
-
-    await supabase.from('transactions').insert({
-      id: `SAFE_DEF_${newSafe.id}`,
-      type: 'safe_definition',
-      type_ar: JSON.stringify(newSafe),
-      amount: initialVal,
-      reference: newSafe.id,
-      status: 'Active'
-    });
   } catch (e) {
-    console.warn('Persist safe definition to Supabase error:', e);
+    console.warn('Insert safe to Supabase error:', e);
   }
-
-  safes.push(newSafe);
-  await saveSafes(safes);
 
   // Log initial balance transaction if > 0
   if (initialVal > 0) {
@@ -1039,7 +967,7 @@ export async function addSafe(safeData) {
 export async function updateSafe(safeId, updatedFields) {
   const initialVal = Number(updatedFields.initialBalance || 0);
 
-  // Update in Supabase DB dedicated table
+  // Update in Supabase DB safes table directly
   try {
     await supabase.from('safes').update({
       name: updatedFields.name,
@@ -1048,17 +976,8 @@ export async function updateSafe(safeId, updatedFields) {
       initial_balance: initialVal,
       notes: updatedFields.notes
     }).eq('id', safeId);
-  } catch (e) {}
-
-  // Local storage update
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem(SAFES_STORAGE_KEY);
-    let safes = stored ? JSON.parse(stored) : [...DEFAULT_SAFES];
-    const idx = safes.findIndex(s => s.id === safeId);
-    if (idx !== -1) {
-      safes[idx] = { ...safes[idx], ...updatedFields, initialBalance: initialVal };
-      localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(safes));
-    }
+  } catch (e) {
+    console.warn('Update safe in Supabase error:', e);
   }
 
   return getSafes();
@@ -1070,32 +989,22 @@ export async function deleteSafe(safeId) {
   try {
     await supabase.from('safes').delete().eq('id', safeId);
     await supabase.from('safe_transactions').delete().eq('safe_id', safeId);
-  } catch (e) {}
-
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem(SAFES_STORAGE_KEY);
-    if (stored) {
-      let safes = JSON.parse(stored).filter(s => s.id !== safeId);
-      localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(safes));
-    }
+  } catch (e) {
+    console.warn('Delete safe from Supabase error:', e);
   }
 
   return getSafes();
 }
 
 export async function recordSafeTransaction({ safeId, type, amount, description, ref }) {
-  let safes = [];
-  const storedSafes = typeof window !== 'undefined' ? localStorage.getItem(SAFES_STORAGE_KEY) : null;
-  if (storedSafes) safes = JSON.parse(storedSafes);
-  else safes = DEFAULT_SAFES;
-
+  const safes = await getSafes();
   const amtVal = Math.abs(Number(amount || 0));
   const safeObj = safes.find(s => s.id === safeId);
   const txId = `STX-${Date.now()}-${Math.floor(Math.random() * 100)}`;
   const descStr = description || 'معاملة خزينة';
   const refStr = ref || 'SYS';
 
-  // Persist Transaction into Supabase DB (both dedicated & fallback tables)
+  // Persist Transaction into Supabase DB safe_transactions & transactions tables
   try {
     await supabase.from('safe_transactions').insert({
       id: txId,
@@ -1118,38 +1027,16 @@ export async function recordSafeTransaction({ safeId, type, amount, description,
       status: 'Completed',
       merchant_id: safeId
     });
-  } catch (e) {
-    console.warn('Persist safe transaction to Supabase error:', e);
-  }
+  } catch (e) {}
 
-  const txs = await getSafeTransactions();
-  const newTx = {
-    id: txId,
-    safeId,
-    safeName: safeObj?.name || safeId,
-    type,
-    amount: amtVal,
-    description: descStr,
-    ref: refStr,
-    date: new Date().toISOString()
-  };
-
-  txs.unshift(newTx);
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(SAFES_TX_STORAGE_KEY, JSON.stringify(txs));
-  }
-  return txs;
+  return getSafeTransactions();
 }
 
 export async function transferBetweenSafes(fromSafeId, toSafeId, amount, note) {
   const amtVal = Number(amount || 0);
-  if (amtVal <= 0 || fromSafeId === toSafeId) return;
+  if (amtVal <= 0 || fromSafeId === toSafeId) return getSafes();
 
-  let safes = [];
-  const storedSafes = typeof window !== 'undefined' ? localStorage.getItem(SAFES_STORAGE_KEY) : null;
-  if (storedSafes) safes = JSON.parse(storedSafes);
-  else safes = DEFAULT_SAFES;
-
+  const safes = await getSafes();
   const fromSafe = safes.find(s => s.id === fromSafeId);
   const toSafe = safes.find(s => s.id === toSafeId);
 
