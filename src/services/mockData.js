@@ -750,7 +750,29 @@ const DEFAULT_SAFES = [
 export async function getSafeTransactions() {
   let txs = [];
 
-  // Fetch safe transactions from Supabase DB
+  // 1. Try fetching from dedicated safe_transactions table if exists
+  try {
+    const { data: dedicatedTxs, error: dedicatedErr } = await supabase
+      .from('safe_transactions')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (!dedicatedErr && dedicatedTxs && dedicatedTxs.length > 0) {
+      txs = dedicatedTxs.map(t => ({
+        id: t.id,
+        safeId: t.safe_id,
+        safeName: t.safe_name,
+        type: t.type,
+        amount: Number(t.amount || 0),
+        description: t.description,
+        ref: t.reference,
+        date: t.date || new Date().toISOString()
+      }));
+      return txs;
+    }
+  } catch (e) {}
+
+  // 2. Fetch safe transactions from Supabase transactions table
   try {
     const { data: dbTxs, error } = await supabase
       .from('transactions')
@@ -808,7 +830,27 @@ export async function getSafeTransactions() {
 export async function getSafes() {
   let safes = [...DEFAULT_SAFES];
 
-  // 1. Fetch custom safe definitions from Supabase DB
+  // 1. Try fetching from dedicated safes table if exists
+  try {
+    const { data: dedicatedSafes, error: dedicatedErr } = await supabase
+      .from('safes')
+      .select('*');
+
+    if (!dedicatedErr && dedicatedSafes && dedicatedSafes.length > 0) {
+      safes = dedicatedSafes.map(s => ({
+        id: s.id,
+        name: s.name,
+        code: s.code,
+        branch: s.branch,
+        initialBalance: Number(s.initial_balance || 0),
+        balance: Number(s.balance || 0),
+        active: s.active,
+        notes: s.notes
+      }));
+    }
+  } catch (e) {}
+
+  // 2. Fetch custom safe definitions from Supabase DB (transactions table fallback)
   try {
     const { data: dbDefs } = await supabase
       .from('transactions')
@@ -829,7 +871,7 @@ export async function getSafes() {
     console.warn('Fetch custom safes from Supabase error:', err);
   }
 
-  // 2. Fetch local storage custom safes
+  // 3. Fetch local storage custom safes
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem(SAFES_STORAGE_KEY);
     if (stored) {
@@ -843,10 +885,10 @@ export async function getSafes() {
     localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(safes));
   }
 
-  // 3. Fetch all safe transactions from Supabase DB & local
+  // 4. Fetch all safe transactions from Supabase DB & local
   let txs = await getSafeTransactions();
 
-  // 4. Auto-sync all delivered shipments from Supabase to SAFE-005 (Drivers Custody Safe)
+  // 5. Auto-sync all delivered shipments from Supabase to SAFE-005 (Drivers Custody Safe)
   try {
     const { data: deliveredShipments } = await supabase
       .from('shipments')
@@ -868,7 +910,20 @@ export async function getSafes() {
             const txId = `STX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
             const desc = `عُهدة ميدانية مع السائق (صافي البضاعة بدون أجرة التوصيل) - (${trk})`;
             
-            // Log to Supabase DB
+            // Try inserting into dedicated safe_transactions table
+            try {
+              await supabase.from('safe_transactions').insert({
+                id: txId,
+                safe_id: 'SAFE-005',
+                safe_name: safeObj?.name || 'خزينة عُهد السائقين',
+                type: 'deposit',
+                amount: netCustodyAmt,
+                description: desc,
+                reference: trk
+              });
+            } catch (e) {}
+
+            // Log to Supabase transactions DB
             await supabase.from('transactions').insert({
               id: txId,
               type: 'safe_deposit',
@@ -902,7 +957,7 @@ export async function getSafes() {
     console.warn('Sync delivered shipments to safes error:', err);
   }
 
-  // 5. Recalculate real dynamic balance from actual logged safe transactions
+  // 6. Recalculate real dynamic balance from actual logged safe transactions
   return safes.map(s => {
     const safeTxs = txs.filter(t => t.safeId === s.id);
     const deposits = safeTxs
