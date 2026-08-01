@@ -735,7 +735,7 @@ export async function deleteEmployee(id) {
   return filtered;
 }
 
-// ─── Safes / Treasury System ──────────────────────────────────────────
+// ─── Safes / Treasury System (Supabase Database Persistence) ─────────
 const SAFES_STORAGE_KEY = 'tamowil_safes_v1';
 const SAFES_TX_STORAGE_KEY = 'tamowil_safes_tx_v1';
 
@@ -748,35 +748,109 @@ const DEFAULT_SAFES = [
 ];
 
 export async function getSafeTransactions() {
-  if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem(SAFES_TX_STORAGE_KEY);
-  if (stored) return JSON.parse(stored);
-  return [];
+  let txs = [];
+
+  // Fetch safe transactions from Supabase DB
+  try {
+    const { data: dbTxs, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .in('type', ['safe_deposit', 'safe_withdrawal', 'safe_transfer_in', 'safe_transfer_out'])
+      .order('date', { ascending: false });
+
+    if (!error && dbTxs) {
+      txs = dbTxs.map(t => {
+        let safeId = t.merchant_id || 'SAFE-001';
+        let safeName = 'الخزينة';
+        let ref = t.reference || t.id;
+
+        if (t.reference && t.reference.includes('::')) {
+          const parts = t.reference.split('::');
+          safeId = parts[0] || safeId;
+          safeName = parts[1] || safeName;
+          ref = parts[2] || ref;
+        }
+
+        const rawType = (t.type || '').replace('safe_', '');
+        return {
+          id: t.id,
+          safeId,
+          safeName,
+          type: rawType, // deposit | withdrawal | transfer_in | transfer_out
+          amount: Number(t.amount || 0),
+          description: t.type_ar || 'معاملة خزينة',
+          ref,
+          date: t.date || new Date().toISOString()
+        };
+      });
+    }
+  } catch (err) {
+    console.warn('Fetch safe transactions from Supabase error:', err);
+  }
+
+  // Fallback / merge with local storage
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(SAFES_TX_STORAGE_KEY);
+    if (stored) {
+      const localTxs = JSON.parse(stored);
+      for (const lt of localTxs) {
+        if (!txs.some(t => t.id === lt.id || (t.ref === lt.ref && t.type === lt.type))) {
+          txs.push(lt);
+        }
+      }
+    }
+    localStorage.setItem(SAFES_TX_STORAGE_KEY, JSON.stringify(txs));
+  }
+
+  return txs;
 }
 
 export async function getSafes() {
-  if (typeof window === 'undefined') return DEFAULT_SAFES;
-  let safes = [];
-  const stored = localStorage.getItem(SAFES_STORAGE_KEY);
-  if (stored) {
-    safes = JSON.parse(stored);
-    // Ensure SAFE-005 exists if user had old localStorage
-    if (!safes.some(s => s.id === 'SAFE-005')) {
-      safes.splice(1, 0, DEFAULT_SAFES[1]);
-      localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(safes));
+  let safes = [...DEFAULT_SAFES];
+
+  // 1. Fetch custom safe definitions from Supabase DB
+  try {
+    const { data: dbDefs } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('type', 'safe_definition');
+
+    if (dbDefs && dbDefs.length > 0) {
+      for (const d of dbDefs) {
+        try {
+          const parsedSafe = typeof d.type_ar === 'string' ? JSON.parse(d.type_ar) : d.type_ar;
+          if (parsedSafe && parsedSafe.id && !safes.some(s => s.id === parsedSafe.id)) {
+            safes.push(parsedSafe);
+          }
+        } catch (e) {}
+      }
     }
-  } else {
-    safes = DEFAULT_SAFES;
-    localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(DEFAULT_SAFES));
+  } catch (err) {
+    console.warn('Fetch custom safes from Supabase error:', err);
   }
 
+  // 2. Fetch local storage custom safes
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(SAFES_STORAGE_KEY);
+    if (stored) {
+      const localSafes = JSON.parse(stored);
+      for (const ls of localSafes) {
+        if (!safes.some(s => s.id === ls.id)) {
+          safes.push(ls);
+        }
+      }
+    }
+    localStorage.setItem(SAFES_STORAGE_KEY, JSON.stringify(safes));
+  }
+
+  // 3. Fetch all safe transactions from Supabase DB & local
   let txs = await getSafeTransactions();
 
-  // Auto-sync all delivered shipments from Supabase to SAFE-005 (Drivers Custody Safe) if missing
+  // 4. Auto-sync all delivered shipments from Supabase to SAFE-005 (Drivers Custody Safe)
   try {
     const { data: deliveredShipments } = await supabase
       .from('shipments')
-      .select('tracking_number, price, product_price, delivery_fee, cod_fee, status')
+      .select('tracking_number, price, product_price, delivery_fee, cod_fee, status, delivery_charge_on')
       .in('status', ['Delivered', 'تم التسليم']);
 
     if (deliveredShipments && deliveredShipments.length > 0) {
@@ -791,13 +865,27 @@ export async function getSafes() {
             : Math.max(0, (Number(sh.price || 0) > 0 ? Number(sh.price) - Number(sh.delivery_fee || 0) : Number(sh.product_price || 0)));
 
           if (netCustodyAmt > 0) {
+            const txId = `STX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            const desc = `عُهدة ميدانية مع السائق (صافي البضاعة بدون أجرة التوصيل) - (${trk})`;
+            
+            // Log to Supabase DB
+            await supabase.from('transactions').insert({
+              id: txId,
+              type: 'safe_deposit',
+              type_ar: desc,
+              amount: netCustodyAmt,
+              reference: `SAFE-005::${safeObj?.name || 'خزينة عُهد السائقين'}::${trk}`,
+              status: 'Completed',
+              merchant_id: 'SAFE-005'
+            });
+
             const newTx = {
-              id: `STX-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              id: txId,
               safeId: 'SAFE-005',
               safeName: safeObj?.name || 'خزينة عُهد السائقين (العهد الميدانية)',
               type: 'deposit',
               amount: netCustodyAmt,
-              description: `عُهدة ميدانية مع السائق (صافي البضاعة بدون أجرة التوصيل) - (${trk})`,
+              description: desc,
               ref: trk,
               date: new Date().toISOString()
             };
@@ -806,7 +894,7 @@ export async function getSafes() {
           }
         }
       }
-      if (newlyRecorded) {
+      if (newlyRecorded && typeof window !== 'undefined') {
         localStorage.setItem(SAFES_TX_STORAGE_KEY, JSON.stringify(txs));
       }
     }
@@ -814,7 +902,7 @@ export async function getSafes() {
     console.warn('Sync delivered shipments to safes error:', err);
   }
 
-  // Recalculate real dynamic balance from actual logged safe transactions
+  // 5. Recalculate real dynamic balance from actual logged safe transactions
   return safes.map(s => {
     const safeTxs = txs.filter(t => t.safeId === s.id);
     const deposits = safeTxs
@@ -850,6 +938,21 @@ export async function addSafe(safeData) {
     active: true,
     notes: safeData.notes || ''
   };
+
+  // Persist Safe Definition into Supabase DB
+  try {
+    await supabase.from('transactions').insert({
+      id: `SAFE_DEF_${newSafe.id}`,
+      type: 'safe_definition',
+      type_ar: JSON.stringify(newSafe),
+      amount: initialVal,
+      reference: newSafe.id,
+      status: 'Active'
+    });
+  } catch (e) {
+    console.warn('Persist safe definition to Supabase error:', e);
+  }
+
   safes.push(newSafe);
   await saveSafes(safes);
 
@@ -868,7 +971,6 @@ export async function addSafe(safeData) {
 }
 
 export async function recordSafeTransaction({ safeId, type, amount, description, ref }) {
-  const txs = await getSafeTransactions();
   let safes = [];
   const storedSafes = typeof window !== 'undefined' ? localStorage.getItem(SAFES_STORAGE_KEY) : null;
   if (storedSafes) safes = JSON.parse(storedSafes);
@@ -876,15 +978,34 @@ export async function recordSafeTransaction({ safeId, type, amount, description,
 
   const amtVal = Math.abs(Number(amount || 0));
   const safeObj = safes.find(s => s.id === safeId);
+  const txId = `STX-${Date.now()}-${Math.floor(Math.random() * 100)}`;
+  const descStr = description || 'معاملة خزينة';
+  const refStr = ref || 'SYS';
 
+  // Persist Transaction into Supabase DB
+  try {
+    await supabase.from('transactions').insert({
+      id: txId,
+      type: `safe_${type}`,
+      type_ar: descStr,
+      amount: amtVal,
+      reference: `${safeId}::${safeObj?.name || safeId}::${refStr}`,
+      status: 'Completed',
+      merchant_id: safeId
+    });
+  } catch (e) {
+    console.warn('Persist safe transaction to Supabase error:', e);
+  }
+
+  const txs = await getSafeTransactions();
   const newTx = {
-    id: `STX-${Date.now()}-${Math.floor(Math.random() * 100)}`,
+    id: txId,
     safeId,
     safeName: safeObj?.name || safeId,
     type,
     amount: amtVal,
-    description: description || 'معاملة خزينة',
-    ref: ref || 'SYS',
+    description: descStr,
+    ref: refStr,
     date: new Date().toISOString()
   };
 
