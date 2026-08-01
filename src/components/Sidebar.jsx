@@ -206,6 +206,32 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               />
             </div>
 
+            <div style={{ marginBottom: '20px', padding: '12px', borderRadius: '10px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#EF4444', marginBottom: '4px' }}>
+                ⚠️ {isAr ? 'بدء نظام جديد كلياً (تصفير الذاكرة)' : 'Fresh System Reset'}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>
+                {isAr ? 'تفريغ كافة المؤشرات والبيانات المؤقتة القديمة لبدء مشروع جديد نظيف متصل بقاعدة البيانات الحية.' : 'Purge legacy cached data to start fresh on database.'}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm(isAr ? 'هل أنت أصل ومؤكد من تفريغ كافة البيانات والبدء بنظام حقيقي جديد كلياً؟' : 'Are you sure you want to reset and start completely fresh?')) {
+                    const savedAdmin = localStorage.getItem('vanex_admin_data');
+                    const savedUser = localStorage.getItem('vanex_current_user');
+                    localStorage.clear();
+                    if (savedAdmin) localStorage.setItem('vanex_admin_data', savedAdmin);
+                    if (savedUser) localStorage.setItem('vanex_current_user', savedUser);
+                    alert(isAr ? 'تم إعادة تهيئة وتصفير النظام كلياً للبدء بنظام نظيف وحقيقي!' : 'System re-initialized cleanly!');
+                    window.location.reload();
+                  }
+                }}
+                style={{ width: '100%', padding: '8px', borderRadius: '8px', border: 'none', background: '#EF4444', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                🧹 {isAr ? 'تصفير وإعادة تهيئة النظام للبدء جديداً' : 'Purge & Start Fresh System'}
+              </button>
+            </div>
+
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowSettings(false)} className="glass-button" style={{ background: 'transparent', color: 'var(--text-secondary)' }}>{isAr ? 'إلغاء' : 'Cancel'}</button>
               <button onClick={() => {
