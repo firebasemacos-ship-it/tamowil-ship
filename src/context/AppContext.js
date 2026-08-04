@@ -352,6 +352,7 @@ export function AppProvider({ children }) {
       deleteShipment: wrapAction(db.deleteShipment),
       updateShipmentStatus: wrapAction(db.updateShipmentStatus),
       assignDriverToShipment: wrapAction(db.assignDriverToShipment),
+      recordWaybillPrinted: wrapAction(db.recordWaybillPrinted),
       toggleUserVerification: wrapAction(db.toggleUserVerification),
       approvePayoutRequest: wrapAction(db.approvePayoutRequest),
       rejectPayoutRequest: wrapAction(db.rejectPayoutRequest),

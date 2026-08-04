@@ -139,10 +139,21 @@ export async function addShipment(data) {
     shipment_tracking: trackingNumber,
     status: 'Registered',
     location: `${data.senderCity || 'طرابلس'} Hub`,
-    details_en: 'Shipment created and confirmed.',
-    details_ar: 'تم إنشاء الشحنة وتأكيد البيانات.'
+    details_en: 'Shipment created, pending approval and pickup.',
+    details_ar: 'تم إدخال الشحنة، في انتظار الموافقة والاستلام.'
   });
 
+  return getShipments();
+}
+
+export async function recordWaybillPrinted(trackingNumber) {
+  await supabase.from('shipment_history').insert({
+    shipment_tracking: trackingNumber,
+    status: 'Printed',
+    location: 'مكتب الشحن',
+    details_ar: 'تم طباعة بوليصة الشحن',
+    details_en: 'Waybill printed'
+  });
   return getShipments();
 }
 
@@ -182,12 +193,23 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
 
   if (error) console.error('updateShipmentStatus error:', error);
 
+  let defaultAr = `تم تحديث حالة الشحنة إلى ${newStatus}`;
+  if (newStatus === 'In Warehouse' || newStatus === 'تم الاستلام') {
+    defaultAr = 'تم استلام الشحنة فعلياً داخل الفرع / مكتب الشحن';
+  } else if (newStatus === 'Out for Delivery' || newStatus === 'خارج للتوصيل') {
+    defaultAr = 'تم تسليم الشحنة للمندوب (خروج للتوصيل)';
+  } else if (newStatus === 'Delivered' || newStatus === 'تم التسليم') {
+    defaultAr = 'تم الوصول إلى الوجهة وتسليم الشحنة للزبون';
+  } else if (newStatus === 'Returned' || newStatus === 'Failed' || newStatus === 'مرتجع') {
+    defaultAr = 'تعذر التسليم / الشحنة مرتجعة';
+  }
+
   // Add history event
   await supabase.from('shipment_history').insert({
     shipment_tracking: trackingNumber,
     status: newStatus,
     location: location || 'Central Sorting Facility',
-    details_ar: detailsAr || `تم تحديث حالة الشحنة إلى ${newStatus}`,
+    details_ar: detailsAr || defaultAr,
     details_en: detailsEn || `Shipment status updated to ${newStatus}`
   });
 
@@ -267,6 +289,20 @@ export async function assignDriverToShipment(trackingNumber, driverId) {
     .update({ assigned_driver_id: driverId })
     .eq('tracking_number', trackingNumber);
   if (error) console.error('assignDriverToShipment error:', error);
+
+  if (driverId) {
+    const { data: drv } = await supabase.from('drivers').select('name, phone').eq('id', driverId).single();
+    const driverName = drv?.name || driverId;
+    const driverPhone = drv?.phone || '';
+    await supabase.from('shipment_history').insert({
+      shipment_tracking: trackingNumber,
+      status: 'Driver Assigned',
+      location: 'الفرع / المحطة',
+      details_ar: driverPhone ? `تم الإسناد إلى المندوب ${driverName} (رقم الهاتف: ${driverPhone})` : `تم الإسناد إلى المندوب ${driverName}`,
+      details_en: `Assigned to driver ${driverName} (${driverPhone})`
+    });
+  }
+
   return getShipments();
 }
 

@@ -83,7 +83,7 @@ function InfoCard({ title, color, icon, rows }) {
    Main Component
 ───────────────────────────────────────────── */
 export default function ShipmentsTable() {
-  const { lang, shipmentsList, merchants, updateShipmentStatus, addShipment, editShipment, deleteShipment, assignDriverToShipment, drivers, cityPricing, theme } = useApp();
+  const { lang, shipmentsList, merchants, updateShipmentStatus, addShipment, editShipment, deleteShipment, assignDriverToShipment, recordWaybillPrinted, drivers, cityPricing, theme } = useApp();
   const isAr = lang === 'ar';
   const isDark = theme === 'dark';
 
@@ -144,16 +144,28 @@ export default function ShipmentsTable() {
     setBulkStatus('');
     setBulkNote('');
   };
+
+  const handleBulkAssign = async () => {
+    if (!bulkDriverId || selectedForBulk.length === 0) return;
+    for (const tracking of selectedForBulk) {
+      await assignDriverToShipment(tracking, bulkDriverId);
+    }
+    alert(isAr ? `تم إسناد ${selectedForBulk.length} شحنة إلى المندوب بنجاح!` : `Assigned ${selectedForBulk.length} shipments to driver!`);
+    setSelectedForBulk([]);
+    setBulkDriverId('');
+  };
+
   const [bulkSelectedStatus, setBulkSelectedStatus] = useState('In Warehouse');
   const [isProcessingBulkModal, setIsProcessingBulkModal] = useState(false);
 
   const [customStatusesList, setCustomStatusesList] = useState([
-    { key: 'Registered', ar: 'مسجلة', en: 'Registered' },
-    { key: 'In Warehouse', ar: 'في المستودع', en: 'In Warehouse' },
-    { key: 'Out for Delivery', ar: 'خارج للتوصيل', en: 'Out for Delivery' },
-    { key: 'Delivered', ar: 'تم التسليم', en: 'Delivered' },
-    { key: 'Returned', ar: 'مرتجعة', en: 'Returned' },
-    { key: 'Cancelled', ar: 'ملغاة', en: 'Cancelled' },
+    { key: 'Registered', ar: 'قيد الانتظار / انتظار الموافقة', en: 'Pending Approval' },
+    { key: 'In Warehouse', ar: 'تم الاستلام في المكتب', en: 'Received in Branch' },
+    { key: 'Printed', ar: 'تم الطباعة', en: 'Waybill Printed' },
+    { key: 'Driver Assigned', ar: 'إسناد المندوب', en: 'Driver Assigned' },
+    { key: 'Out for Delivery', ar: 'تم تسليم الشحنة للمندوب', en: 'Out for Delivery' },
+    { key: 'Delivered', ar: 'تم الوصول إلى الوجهة / تم التسليم', en: 'Delivered' },
+    { key: 'Returned', ar: 'مرتجعة / تعذر التسليم', en: 'Delivery Failed / Returned' },
   ]);
 
   useEffect(() => {
@@ -277,15 +289,6 @@ export default function ShipmentsTable() {
     setEditForm(null);
   };
 
-  const handleBulkAssign = () => {
-    if (!bulkDriverId || selectedForBulk.length === 0) return;
-    selectedForBulk.forEach(tracking => {
-      assignDriverToShipment(tracking, bulkDriverId);
-    });
-    setSelectedForBulk([]);
-    setBulkDriverId('');
-    alert(isAr ? 'تم الإسناد بنجاح' : 'Assigned successfully');
-  };
 
   const handlePrintManifest = () => {
     setPrintType('manifest');
@@ -294,6 +297,9 @@ export default function ShipmentsTable() {
 
   const handlePrintWaybill = () => {
     setPrintType('waybill');
+    if (selectedShipment) {
+      recordWaybillPrinted(selectedShipment.trackingNumber);
+    }
     setTimeout(() => {
       if (window.JsBarcode && selectedShipment) {
         window.JsBarcode("#barcode", selectedShipment.trackingNumber, {
