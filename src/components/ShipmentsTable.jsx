@@ -413,7 +413,7 @@ export default function ShipmentsTable() {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button className="glass-button" style={{ backgroundColor: 'rgba(99, 102, 241, 0.18)', borderColor: 'rgba(99, 102, 241, 0.4)', color: '#818CF8', fontWeight: 'bold' }} onClick={() => setShowAddCustomStatusModal(true)}>
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-            {isAr ? '➕ إضافة حالة جديدة' : '➕ Add Custom Status'}
+            {isAr ? 'إضافة حالة جديدة' : 'Add Custom Status'}
           </button>
           <button className="glass-button" onClick={() => setShowCreate(true)}>
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
@@ -1505,7 +1505,7 @@ export default function ShipmentsTable() {
           <div className="modal-content glass-card" style={{ maxWidth: 520, width: '90%' }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4 pb-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <h2 className="title-medium" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
-                <span>⚡</span>
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 {isAr ? 'تحديث حالة الشحنات الجماعية' : 'Bulk Shipment Status Update'}
               </h2>
               <button onClick={() => setShowBulkStatusModal(false)} className="text-gray-400 hover:text-white" style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}>✕</button>
@@ -1570,7 +1570,7 @@ export default function ShipmentsTable() {
           <div className="modal-content glass-card" style={{ maxWidth: 450, width: '90%' }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4 pb-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <h2 className="title-medium" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
-                <span>➕</span>
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
                 {isAr ? 'إضافة حالة شحنة مخصصة جديدة' : 'Add Custom Shipment Status'}
               </h2>
               <button onClick={() => setShowAddCustomStatusModal(false)} className="text-gray-400 hover:text-white" style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}>✕</button>

@@ -207,8 +207,8 @@ export default function Sidebar({ activeTab, setActiveTab }) {
             </div>
 
             <div style={{ marginBottom: '20px', padding: '12px', borderRadius: '10px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#EF4444', marginBottom: '4px' }}>
-                ⚠️ {isAr ? 'بدء نظام جديد كلياً (تصفير الذاكرة)' : 'Fresh System Reset'}
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#EF4444', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> {isAr ? 'بدء نظام جديد كلياً (تصفير الذاكرة)' : 'Fresh System Reset'}
               </div>
               <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>
                 {isAr ? 'تفريغ كافة المؤشرات والبيانات المؤقتة القديمة لبدء مشروع جديد نظيف متصل بقاعدة البيانات الحية.' : 'Purge legacy cached data to start fresh on database.'}
@@ -226,9 +226,9 @@ export default function Sidebar({ activeTab, setActiveTab }) {
                     window.location.reload();
                   }
                 }}
-                style={{ width: '100%', padding: '8px', borderRadius: '8px', border: 'none', background: '#EF4444', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '8px', border: 'none', background: '#EF4444', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
-                🧹 {isAr ? 'تصفير وإعادة تهيئة النظام للبدء جديداً' : 'Purge & Start Fresh System'}
+                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> {isAr ? 'تصفير وإعادة تهيئة النظام للبدء جديداً' : 'Purge & Start Fresh System'}
               </button>
             </div>
 

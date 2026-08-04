@@ -246,7 +246,9 @@ export default function PricingManager() {
 
         {/* Policy Note Box */}
         <div style={{ marginTop: '24px', padding: '14px 18px', background: '#F1F5F9', borderRight: '4px solid #0D7847', borderRadius: '8px', fontSize: '11px', color: '#334155', lineHeight: '1.6' }}>
-          <strong style={{ color: '#0D7847', fontSize: '12px' }}>💡 الشروط والتعليمات التنظيمية:</strong>
+          <strong style={{ color: '#0D7847', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 001 1h6a1 1 0 001-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 00-7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg> الشروط والتعليمات التنظيمية:
+          </strong>
           <ul style={{ margin: '4px 0 0', paddingRight: '18px' }}>
             <li>الأسعار المبينة أعلاه معتمدة ورسمية ومحتسبة بالدينار الليبي (د.ل).</li>
             <li>يتم تحصيل رسوم الخدمة وفق الإجمالي الموضح شامل التوصيل المباشر وعمولة التحصيل.</li>

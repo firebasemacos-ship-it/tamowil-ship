@@ -433,7 +433,7 @@ export default function WalletManager() {
           })}
           {filteredMerchants.length === 0 && (
             <div className="glass-card" style={{ textAlign: 'center', padding: '50px 0', color: 'var(--text-tertiary)', fontSize: '13px' }}>
-              <div style={{ fontSize: '36px', marginBottom: '10px', opacity: 0.4 }}>🔍</div>
+              <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ margin: '0 auto 10px', opacity: 0.4 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               {isAr ? 'لا توجد محافظ تجار تطابق نتيجة البحث.' : 'No merchant wallets match your search criteria.'}
             </div>
           )}
@@ -570,8 +570,8 @@ export default function WalletManager() {
                   {isAr ? 'نوع التسوية' : 'Settlement Type'}
                 </label>
                 <select className="glass-input" value={manualForm.type} onChange={e => setManualForm(p => ({ ...p, type: e.target.value }))}>
-                  <option value="credit">{isAr ? '➕ إيداع / شحن رصيد للمحفظة (+)' : '➕ Credit Deposit (+)'}</option>
-                  <option value="debit">{isAr ? '➖ خصم / تسوية رصيد من المحفظة (-)' : '➖ Debit Settlement (-)'}</option>
+                  <option value="credit">{isAr ? '+ إيداع / شحن رصيد للمحفظة (+)' : '+ Credit Deposit (+)'}</option>
+                  <option value="debit">{isAr ? '- خصم / تسوية رصيد من المحفظة (-)' : '- Debit Settlement (-)'}</option>
                 </select>
               </div>
               <div>

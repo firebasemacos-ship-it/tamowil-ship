@@ -172,25 +172,25 @@ export default function SafesManager() {
                 <span>{isAr ? '→' : '←'}</span> {isAr ? 'العودة لكافة الخزائن' : 'Back to All Safes'}
               </button>
               <div>
-                <h1 className="title-large" style={{ margin: 0, fontSize: '20px' }}>
-                  🏦 {activeDetailSafe.name}
+                <h1 className="title-large" style={{ margin: 0, fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg> {activeDetailSafe.name}
                 </h1>
                 <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{activeDetailSafe.code} • {activeDetailSafe.branch}</span>
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button className="glass-button" style={{ background: 'var(--primary-color)', color: '#fff' }} onClick={() => openEditModal(activeDetailSafe)}>
-                ✏️ {isAr ? 'تعديل بيانات الخزينة' : 'Edit Safe'}
+              <button className="glass-button" style={{ background: 'var(--primary-color)', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => openEditModal(activeDetailSafe)}>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> {isAr ? 'تعديل بيانات الخزينة' : 'Edit Safe'}
               </button>
-              <button className="glass-button" style={{ background: '#10B981', color: '#fff' }} onClick={() => openActionModal('deposit', activeDetailSafe.id)}>
-                ➕ {isAr ? 'إيداع مالي' : 'Deposit'}
+              <button className="glass-button" style={{ background: '#10B981', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => openActionModal('deposit', activeDetailSafe.id)}>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> {isAr ? 'إيداع مالي' : 'Deposit'}
               </button>
-              <button className="glass-button" style={{ background: '#EF4444', color: '#fff' }} onClick={() => openActionModal('withdrawal', activeDetailSafe.id)}>
-                ➖ {isAr ? 'صرف مالي' : 'Withdraw'}
+              <button className="glass-button" style={{ background: '#EF4444', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => openActionModal('withdrawal', activeDetailSafe.id)}>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg> {isAr ? 'صرف مالي' : 'Withdraw'}
               </button>
-              <button className="glass-button" style={{ background: '#6366F1', color: '#fff' }} onClick={() => window.print()}>
-                🖨️ {isAr ? 'طباعة الكشف' : 'Print Statement'}
+              <button className="glass-button" style={{ background: '#6366F1', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => window.print()}>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> {isAr ? 'طباعة الكشف' : 'Print Statement'}
               </button>
             </div>
           </div>
@@ -313,17 +313,17 @@ export default function SafesManager() {
             <p className="subtitle">{isAr ? 'متابعة أرصدة الخزائن النقدیة، الإيداع والصرف المباشر، والتحويل بين السيولة.' : 'Manage safes, cash flow, deposits, withdrawals, and inter-safe transfers.'}</p>
           </div>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button className="glass-button" style={{ background: '#10B981', color: '#fff' }} onClick={() => openActionModal('deposit')}>
-              ➕ {isAr ? 'إيداع مالي' : 'Deposit'}
+            <button className="glass-button" style={{ background: '#10B981', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => openActionModal('deposit')}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> {isAr ? 'إيداع مالي' : 'Deposit'}
             </button>
-            <button className="glass-button" style={{ background: '#EF4444', color: '#fff' }} onClick={() => openActionModal('withdrawal')}>
-              ➖ {isAr ? 'صرف مالي' : 'Withdraw'}
+            <button className="glass-button" style={{ background: '#EF4444', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => openActionModal('withdrawal')}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg> {isAr ? 'صرف مالي' : 'Withdraw'}
             </button>
-            <button className="glass-button" style={{ background: '#6366F1', color: '#fff' }} onClick={() => setShowTransferModal(true)}>
-              🔄 {isAr ? 'تحويل بين الخزائن' : 'Transfer Between Safes'}
+            <button className="glass-button" style={{ background: '#6366F1', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => setShowTransferModal(true)}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> {isAr ? 'تحويل بين الخزائن' : 'Transfer Between Safes'}
             </button>
-            <button className="glass-button" onClick={() => setShowAddModal(true)}>
-              ➕ {isAr ? 'إضافة خزينة جديدة' : 'Add New Safe'}
+            <button className="glass-button" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => setShowAddModal(true)}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> {isAr ? 'إضافة خزينة جديدة' : 'Add New Safe'}
             </button>
           </div>
         </div>
@@ -331,7 +331,9 @@ export default function SafesManager() {
         {/* ── KPI Cards ────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
           <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10B981,#059669)', color: '#fff', fontSize: '22px' }}>🏦</div>
+            <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10B981,#059669)', color: '#fff' }}>
+              <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg>
+            </div>
             <div>
               <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)' }}>{isAr ? 'إجمالي السيولة بالأرصدة' : 'Total Safes Cash'}</div>
               <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }} dir="ltr">{fmt(totalSafesBalance)}</div>
@@ -339,7 +341,9 @@ export default function SafesManager() {
           </div>
 
           <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#3B82F6,#1D4ED8)', color: '#fff', fontSize: '22px' }}>🔐</div>
+            <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#3B82F6,#1D4ED8)', color: '#fff' }}>
+              <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            </div>
             <div>
               <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)' }}>{isAr ? 'عدد الخزائن الفعالة' : 'Active Safes'}</div>
               <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{(safes || []).length} {isAr ? 'خزائن' : 'Safes'}</div>
@@ -347,7 +351,9 @@ export default function SafesManager() {
           </div>
 
           <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#818CF8,#4F46E5)', color: '#fff', fontSize: '22px' }}>📜</div>
+            <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#818CF8,#4F46E5)', color: '#fff' }}>
+              <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
             <div>
               <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)' }}>{isAr ? 'إجمالي المعاملات والتحويلات' : 'Treasury Movements'}</div>
               <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{(safeTransactions || []).length} {isAr ? 'معاملة' : 'Txs'}</div>
@@ -358,7 +364,7 @@ export default function SafesManager() {
         {/* ── Safes Grid Cards ──────────────────────────────────── */}
         <div>
           <h3 style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>🏦</span> {isAr ? 'قائمة الخزائن الحالية (اضغط لعرض السجل التفصيلي)' : 'Current Safes List (Click to view full statement)'}
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg> {isAr ? 'قائمة الخزائن الحالية (اضغط لعرض السجل التفصيلي)' : 'Current Safes List (Click to view full statement)'}
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
             {(safes || []).map(safe => (
@@ -385,7 +391,7 @@ export default function SafesManager() {
 
                 {safe.notes && (
                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                    💬 {safe.notes}
+                    {safe.notes}
                   </div>
                 )}
 
@@ -393,10 +399,10 @@ export default function SafesManager() {
                 <div style={{ marginTop: 'auto', paddingTop: '8px', display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
                   <button 
                     onClick={() => openEditModal(safe)}
-                    style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.06)', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                    style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.06)', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title={isAr ? 'تعديل بيانات الخزينة' : 'Edit Safe'}
                   >
-                    ✏️
+                    <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
                   <button 
                     onClick={() => openActionModal('deposit', safe.id)}
@@ -592,7 +598,7 @@ export default function SafesManager() {
           <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
             <div className="modal-content glass-panel" style={{ padding: '28px', maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
               <h3 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>✏️</span> {isAr ? 'تعديل بيانات الخزينة والرصيد' : 'Edit Safe & Initial Balance'}
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> {isAr ? 'تعديل بيانات الخزينة والرصيد' : 'Edit Safe & Initial Balance'}
               </h3>
               <form onSubmit={handleEditSafeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
@@ -633,7 +639,7 @@ export default function SafesManager() {
                     {isAr ? 'إلغاء' : 'Cancel'}
                   </button>
                   <button type="submit" className="glass-button w-full" style={{ background: 'var(--primary-color)', color: '#fff' }}>
-                    💾 {isAr ? 'حفظ التغييرات' : 'Save Changes'}
+                    {isAr ? 'حفظ التغييرات' : 'Save Changes'}
                   </button>
                 </div>
               </form>
@@ -647,7 +653,11 @@ export default function SafesManager() {
             <div className="modal-content glass-panel" style={{ padding: '28px', maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
               <h3 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ color: showActionModal === 'deposit' ? '#10B981' : '#EF4444' }}>
-                  {showActionModal === 'deposit' ? '➕' : '➖'}
+                  {showActionModal === 'deposit' ? (
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  ) : (
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  )}
                 </span> 
                 {showActionModal === 'deposit' ? (isAr ? 'إيداع مالي في الخزينة' : 'Deposit into Safe') : (isAr ? 'صرف مالي من الخزينة' : 'Withdraw from Safe')}
               </h3>
@@ -702,7 +712,7 @@ export default function SafesManager() {
           <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
             <div className="modal-content glass-panel" style={{ padding: '28px', maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
               <h3 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>🏦</span> {isAr ? 'إضافة خزينة جديدة' : 'Add New Safe'}
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg> {isAr ? 'إضافة خزينة جديدة' : 'Add New Safe'}
               </h3>
               <form onSubmit={handleAddSafeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
