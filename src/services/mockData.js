@@ -474,7 +474,7 @@ export async function manualCredit(merchantId, amount, description, type = 'cred
   if (safeId) {
     await recordSafeTransaction({
       safeId: safeId,
-      type: type === 'debit' ? 'deposit' : 'withdrawal',
+      type: type === 'debit' ? 'withdrawal' : 'deposit',
       amount: Math.abs(Number(amount)),
       description: `تسوية يدوي لمجموع المحفظة (${description || defaultDesc})`,
       ref: 'MANUAL'
