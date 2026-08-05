@@ -654,29 +654,42 @@ export default function ShipmentsTable() {
                           setUpdateDetailsEn('Shipment registered and processing');
                         } else if (s === 'In Warehouse') {
                           setUpdateLocation('مركز الفرز الرئيسي');
-                          setUpdateDetailsAr('تم استقبال الشحنة في المستودع وجاري التجهيز للشحن');
-                          setUpdateDetailsEn('Shipment received at warehouse and preparing for transit');
+                          setUpdateDetailsAr('تم استلام الشحنة داخل الفرع / المكتب');
+                          setUpdateDetailsEn('Shipment received in branch');
+                        } else if (s === 'Printed') {
+                          setUpdateLocation('مكتب الشحن');
+                          setUpdateDetailsAr('تم طباعة بوليصة الشحن');
+                          setUpdateDetailsEn('Waybill printed');
+                        } else if (s === 'Driver Assigned') {
+                          setUpdateLocation('فرع التوزيع');
+                          setUpdateDetailsAr('تم إسناد الشحنة لمندوب التوصيل');
+                          setUpdateDetailsEn('Shipment assigned to delivery driver');
                         } else if (s === 'Out for Delivery') {
                           setUpdateLocation(`${city} Hub`);
-                          setUpdateDetailsAr('الشحنة خارج للتوصيل الآن مع مندوب المنطقة');
-                          setUpdateDetailsEn('Shipment is out for delivery with local courier');
+                          setUpdateDetailsAr('تم تسليم الشحنة للمندوب وتتجه إلى الزبون');
+                          setUpdateDetailsEn('Shipment handed to driver for delivery');
                         } else if (s === 'Delivered') {
                           setUpdateLocation(city);
-                          setUpdateDetailsAr('تم تسليم الشحنة للمستلم بنجاح وتحصيل المبلغ');
-                          setUpdateDetailsEn('Shipment delivered successfully and cash collected');
+                          setUpdateDetailsAr('تم الوصول إلى الوجهة وتسليم الشحنة للزبون');
+                          setUpdateDetailsEn('Shipment delivered successfully');
                         } else if (s === 'Returned') {
                           setUpdateLocation('مركز الفرز الرئيسي');
-                          setUpdateDetailsAr('تم إرجاع الشحنة');
-                          setUpdateDetailsEn('Shipment returned');
+                          setUpdateDetailsAr('تعذر التسليم / الشحنة مرتجعة');
+                          setUpdateDetailsEn('Delivery failed / Shipment returned');
+                        } else {
+                          const match = customStatusesList.find(c => c.key === s);
+                          setUpdateLocation('مكتب الشحن');
+                          setUpdateDetailsAr(match ? match.ar : `تحديث حالة الشحنة إلى ${s}`);
+                          setUpdateDetailsEn(match ? match.en : `Shipment status updated to ${s}`);
                         }
                       }}
                       style={{ background: 'transparent', border: 'none', color: sc.color, fontWeight: 800, fontSize: 13, outline: 'none', cursor: 'pointer', width: '100%', appearance: 'auto', padding: 0 }}
                     >
-                      <option value="Registered" style={{ color: isDark ? '#000' : 'inherit' }}>{isAr ? 'مسجلة (قيد التجهيز)' : 'Registered (Processing)'}</option>
-                      <option value="In Warehouse" style={{ color: isDark ? '#000' : 'inherit' }}>{isAr ? 'في المستودع' : 'In Warehouse'}</option>
-                      <option value="Out for Delivery" style={{ color: isDark ? '#000' : 'inherit' }}>{isAr ? 'مع المندوب (خارج للتوصيل)' : 'Out for Delivery (With Driver)'}</option>
-                      <option value="Delivered" style={{ color: isDark ? '#000' : 'inherit' }}>{isAr ? 'تم التسليم' : 'Delivered'}</option>
-                      <option value="Returned" style={{ color: isDark ? '#000' : 'inherit' }}>{isAr ? 'مرتجع' : 'Returned'}</option>
+                      {customStatusesList.map(cs => (
+                        <option key={cs.key} value={cs.key} style={{ color: isDark ? '#000' : 'inherit' }}>
+                          {isAr ? cs.ar : cs.en}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
