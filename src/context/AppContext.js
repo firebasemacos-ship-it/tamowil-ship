@@ -178,10 +178,11 @@ export function AppProvider({ children }) {
           try {
             const [
               shipmentsData, merchantsData, payoutsData, txLogData,
-              driversData, settlementsData, pricingData, ticketsData, statsData
+              driversData, settlementsData, pricingData, ticketsData, statsData, safesData, safeTxsData
             ] = await Promise.all([
               db.getShipments(), db.getUsers(), db.getPayoutRequests(), db.getTransactionLog(),
-              db.getDrivers(), db.getDriverSettlements(), db.getCityPricing(), db.getTickets(), db.getDashboardStats()
+              db.getDrivers(), db.getDriverSettlements(), db.getCityPricing(), db.getTickets(), db.getDashboardStats(),
+              db.getSafes(), db.getSafeTransactions()
             ]);
             setShipmentsList(shipmentsData);
             setMerchants(merchantsData);
@@ -192,6 +193,8 @@ export function AppProvider({ children }) {
             setCityPricing(pricingData);
             setTickets(ticketsData);
             setDashboardStats(statsData);
+            setSafes(safesData);
+            setSafeTransactions(safeTxsData);
           } catch (e) {
             console.error('Error refreshing realtime data:', e);
           }
