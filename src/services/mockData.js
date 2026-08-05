@@ -505,9 +505,20 @@ export async function manualCredit(merchantId, amount, description, type = 'cred
 // ─── Drivers ─────────────────────────────────────────────────
 
 export async function getDrivers() {
-  const { data, error } = await supabase.from('drivers').select('*');
+  const { data: drivers, error } = await supabase.from('drivers').select('*');
   if (error) return [];
-  return data.map(mapDriverFromDb);
+
+  const { data: shipments } = await supabase.from('shipments').select('assigned_driver_id, status, created_at');
+
+  return drivers.map(d => {
+    const dShipments = (shipments || []).filter(s => s.assigned_driver_id === d.id);
+    const completedCount = dShipments.filter(s => s.status === 'Delivered' || s.status === 'تم التسليم').length;
+
+    const mapped = mapDriverFromDb(d);
+    mapped.shipmentsCompleted = completedCount > 0 ? completedCount : mapped.shipmentsCompleted;
+    mapped.shipmentsToday = dShipments.length;
+    return mapped;
+  });
 }
 
 export async function addDriver(data) {
@@ -710,14 +721,14 @@ export async function getDashboardStats() {
   const users = await getUsers();
   const payoutRequests = await getPayoutRequests();
 
-  const deliveredShipments = shipments.filter(s => s.status === 'Delivered');
+  const deliveredShipments = shipments.filter(s => s.status === 'Delivered' || s.status === 'تم التسليم');
 
   const total      = shipments.length;
   const delivered  = deliveredShipments.length;
-  const progress   = shipments.filter(s => s.status === 'Out for Delivery').length;
-  const warehouse  = shipments.filter(s => s.status === 'In Warehouse').length;
-  const registered = shipments.filter(s => s.status === 'Registered').length;
-  const returned   = shipments.filter(s => s.status === 'Returned').length;
+  const progress   = shipments.filter(s => s.status === 'Out for Delivery' || s.status === 'قيد التوصيل').length;
+  const warehouse  = shipments.filter(s => s.status === 'In Warehouse' || s.status === 'بالمستودع' || s.status === 'Printed').length;
+  const registered = shipments.filter(s => s.status === 'Registered' || s.status === 'Pending').length;
+  const returned   = shipments.filter(s => s.status === 'Returned' || s.status === 'Failed' || s.status === 'مرتجعة').length;
 
   const totalCodCollected = deliveredShipments.reduce((sum, s) => sum + Number(s.price || 0), 0);
   const grossProfits      = deliveredShipments.reduce((sum, s) => sum + Number(s.deliveryFee || 0) + Number(s.codFee || 0), 0);
