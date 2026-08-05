@@ -325,13 +325,21 @@ export async function getUsers() {
   // Calculate balances dynamically
   const { data: shipments } = await supabase.from('shipments').select('price, delivery_fee, cod_fee, status, merchant_id');
   const { data: payouts } = await supabase.from('payout_requests').select('amount, status, merchant_id');
+  const { data: transactions } = await supabase.from('transactions').select('amount, type, merchant_id');
 
   return merchants.map(m => {
-    const mShipments = (shipments || []).filter(s => s.merchant_id === m.id && s.status === 'Delivered');
+    const mShipments = (shipments || []).filter(s => s.merchant_id === m.id && (s.status === 'Delivered' || s.status === 'تم التسليم'));
     const mApprovedPayouts = (payouts || []).filter(p => p.merchant_id === m.id && p.status === 'Approved');
+    const mTransactions = (transactions || []).filter(t => t.merchant_id === m.id);
     
-    const totalEarned = mShipments.reduce((sum, s) => sum + (Number(s.price || 0) - Number(s.delivery_fee || 0) - Number(s.cod_fee || 0)), 0);
-    const totalWithdrawn = mApprovedPayouts.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const totalEarnedFromShipments = mShipments.reduce((sum, s) => sum + (Number(s.price || 0) - Number(s.delivery_fee || 0) - Number(s.cod_fee || 0)), 0);
+    const totalWithdrawnFromPayouts = mApprovedPayouts.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    const manualCredits = mTransactions.filter(t => t.type === 'credit' && Number(t.amount || 0) > 0).reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const manualDebits = mTransactions.filter(t => (t.type === 'debit' || Number(t.amount || 0) < 0) && !t.type?.startsWith('safe_')).reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0);
+
+    const totalEarned = totalEarnedFromShipments + manualCredits;
+    const totalWithdrawn = totalWithdrawnFromPayouts + manualDebits;
     const walletBalance = Math.max(0, totalEarned - totalWithdrawn);
     
     return {

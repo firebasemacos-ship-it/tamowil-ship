@@ -223,10 +223,12 @@ export function AppProvider({ children }) {
       await actionFn(...args);
       const [
         shipmentsData, merchantsData, payoutsData, txLogData,
-        driversData, settlementsData, pricingData, ticketsData, statsData, employeesData
+        driversData, settlementsData, pricingData, ticketsData, statsData, employeesData,
+        safesData, safeTxsData
       ] = await Promise.all([
         db.getShipments(), db.getUsers(), db.getPayoutRequests(), db.getTransactionLog(),
-        db.getDrivers(), db.getDriverSettlements(), db.getCityPricing(), db.getTickets(), db.getDashboardStats(), db.getEmployees()
+        db.getDrivers(), db.getDriverSettlements(), db.getCityPricing(), db.getTickets(), db.getDashboardStats(), db.getEmployees(),
+        db.getSafes(), db.getSafeTransactions()
       ]);
       setShipmentsList(shipmentsData);
       setMerchants(merchantsData);
@@ -238,6 +240,8 @@ export function AppProvider({ children }) {
       setTickets(ticketsData);
       setDashboardStats(statsData);
       setEmployees(employeesData);
+      setSafes(safesData);
+      setSafeTransactions(safeTxsData);
     } catch (e) {
       console.error('Error executing action:', e);
     }
