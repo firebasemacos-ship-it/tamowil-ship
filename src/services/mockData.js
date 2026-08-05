@@ -1,5 +1,10 @@
 import { supabase } from './supabaseClient';
 
+const safeNum = (v, fallback = 0) => {
+  const n = Number(v);
+  return isNaN(n) ? fallback : n;
+};
+
 // Helper to map DB shipments to Frontend format
 function mapShipmentFromDb(sh) {
   return {
@@ -13,12 +18,12 @@ function mapShipmentFromDb(sh) {
     receiverBackupPhone: sh.receiver_backup_phone,
     detailedAddress: sh.detailed_address,
     status: sh.status,
-    price: Number(sh.price || 0),
-    deliveryFee: Number(sh.delivery_fee || 0),
-    codFee: Number(sh.cod_fee || 0),
+    price: safeNum(sh.price),
+    deliveryFee: safeNum(sh.delivery_fee),
+    codFee: safeNum(sh.cod_fee),
     cargoType: sh.cargo_type,
-    quantity: Number(sh.quantity || 1),
-    productPrice: Number(sh.product_price || 0),
+    quantity: safeNum(sh.quantity, 1),
+    productPrice: safeNum(sh.product_price),
     deliveryChargeOn: sh.delivery_charge_on,
     freeService: !!sh.free_service,
     tryOn: !!sh.try_on,
