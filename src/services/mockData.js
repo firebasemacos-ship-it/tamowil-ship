@@ -147,6 +147,11 @@ export async function addShipment(data) {
 }
 
 export async function recordWaybillPrinted(trackingNumber) {
+  await supabase
+    .from('shipments')
+    .update({ status: 'Printed' })
+    .eq('tracking_number', trackingNumber);
+
   await supabase.from('shipment_history').insert({
     shipment_tracking: trackingNumber,
     status: 'Printed',
@@ -284,9 +289,14 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
 }
 
 export async function assignDriverToShipment(trackingNumber, driverId) {
+  const updateData = { assigned_driver_id: driverId };
+  if (driverId) {
+    updateData.status = 'Out for Delivery';
+  }
+
   const { error } = await supabase
     .from('shipments')
-    .update({ assigned_driver_id: driverId })
+    .update(updateData)
     .eq('tracking_number', trackingNumber);
   if (error) console.error('assignDriverToShipment error:', error);
 
@@ -296,10 +306,10 @@ export async function assignDriverToShipment(trackingNumber, driverId) {
     const driverPhone = drv?.phone || '';
     await supabase.from('shipment_history').insert({
       shipment_tracking: trackingNumber,
-      status: 'Driver Assigned',
+      status: 'Out for Delivery',
       location: 'الفرع / المحطة',
-      details_ar: driverPhone ? `تم الإسناد إلى المندوب ${driverName} (رقم الهاتف: ${driverPhone})` : `تم الإسناد إلى المندوب ${driverName}`,
-      details_en: `Assigned to driver ${driverName} (${driverPhone})`
+      details_ar: driverPhone ? `تم تسليم الشحنة للمندوب ${driverName} (رقم الهاتف: ${driverPhone})` : `تم تسليم الشحنة للمندوب ${driverName}`,
+      details_en: `Handed to driver ${driverName} (${driverPhone})`
     });
   }
 
