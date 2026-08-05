@@ -886,13 +886,13 @@ export async function getSafeTransactions() {
 export async function getSafes() {
   let safes = [];
 
-  // 1. Fetch from dedicated safes table in Supabase DB
+  // Fetch strictly from dedicated safes table in Supabase DB
   try {
     const { data: dedicatedSafes, error: dedicatedErr } = await supabase
       .from('safes')
       .select('*');
 
-    if (!dedicatedErr && dedicatedSafes && dedicatedSafes.length > 0) {
+    if (!dedicatedErr && dedicatedSafes) {
       safes = dedicatedSafes.map(s => ({
         id: s.id,
         name: s.name,
@@ -904,11 +904,8 @@ export async function getSafes() {
         notes: s.notes
       }));
     }
-  } catch (e) {}
-
-  // Fallback to DEFAULT_SAFES if table empty
-  if (safes.length === 0) {
-    safes = [...DEFAULT_SAFES];
+  } catch (e) {
+    console.warn('Fetch safes error:', e);
   }
 
   // 2. Fetch all safe transactions 100% live from Supabase DB
