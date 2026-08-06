@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
+import AnimatedCounter from './AnimatedCounter';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
