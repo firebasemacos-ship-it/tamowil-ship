@@ -128,26 +128,34 @@ export default function SafesManager() {
     setShowEditModal(false);
   }
 
-  function handleTransferSubmit(e) {
+  async function handleTransferSubmit(e) {
     e.preventDefault();
     if (!transferForm.fromSafeId || !transferForm.toSafeId || !transferForm.amount) return;
-    transferBetweenSafes(transferForm.fromSafeId, transferForm.toSafeId, transferForm.amount, transferForm.note);
-    setTransferForm({ fromSafeId: '', toSafeId: '', amount: '', note: '' });
-    setShowTransferModal(false);
+    try {
+      await transferBetweenSafes(transferForm.fromSafeId, transferForm.toSafeId, transferForm.amount, transferForm.note);
+      setTransferForm({ fromSafeId: '', toSafeId: '', amount: '', note: '' });
+      setShowTransferModal(false);
+    } catch (err) {
+      alert(err.message || 'حدث خطأ أثناء إجراء التحويل بين الخزائن');
+    }
   }
 
-  function handleActionSubmit(e) {
+  async function handleActionSubmit(e) {
     e.preventDefault();
     if (!actionForm.safeId || !actionForm.amount || !showActionModal) return;
-    recordSafeTransaction({
-      safeId: actionForm.safeId,
-      type: showActionModal,
-      amount: actionForm.amount,
-      description: actionForm.description || (showActionModal === 'deposit' ? (isAr ? 'إيداع مالي يدوي' : 'Manual Deposit') : (isAr ? 'صرف مالي يدوي' : 'Manual Withdrawal')),
-      ref: actionForm.ref || (showActionModal === 'deposit' ? 'DEP-MANUAL' : 'WTH-MANUAL')
-    });
-    setActionForm({ safeId: '', amount: '', description: '', ref: '' });
-    setShowActionModal(null);
+    try {
+      await recordSafeTransaction({
+        safeId: actionForm.safeId,
+        type: showActionModal,
+        amount: actionForm.amount,
+        description: actionForm.description || (showActionModal === 'deposit' ? (isAr ? 'إيداع مالي يدوي' : 'Manual Deposit') : (isAr ? 'صرف مالي يدوي' : 'Manual Withdrawal')),
+        ref: actionForm.ref || (showActionModal === 'deposit' ? 'DEP-MANUAL' : 'WTH-MANUAL')
+      });
+      setActionForm({ safeId: '', amount: '', description: '', ref: '' });
+      setShowActionModal(null);
+    } catch (err) {
+      alert(err.message || 'حدث خطأ أثناء تنفيذ المعاملة على الخزينة');
+    }
   }
 
   function openActionModal(type, safeId = '') {

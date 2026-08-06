@@ -438,34 +438,44 @@ export async function getPayoutRequests() {
 }
 
 export async function approvePayoutRequest(id, safeId = 'SAFE-001') {
+  const { data: p } = await supabase.from('payout_requests').select('*').eq('id', id).single();
+  if (!p) throw new Error('طلب السحب غير موجود.');
+  
+  const amtVal = Number(p.amount || 0);
+  if (safeId) {
+    const safes = await getSafes();
+    const safeObj = safes.find(s => s.id === safeId);
+    const currentSafeBal = Number(safeObj?.balance || 0);
+    if (currentSafeBal < amtVal) {
+      throw new Error(`رصيد الخزينة المحددة (${safeObj?.name || safeId}) غير كافٍ لصرف المبلغ. الرصيد المتاح: ${currentSafeBal} د.ل - المطلوب: ${amtVal} د.ل`);
+    }
+  }
+
   await supabase
     .from('payout_requests')
     .update({ status: 'Approved', processed_at: new Date(), note: 'تم الموافقة على التحويل بنجاح.' })
     .eq('id', id);
   
-  // Record Transaction
-  const { data: p } = await supabase.from('payout_requests').select('*').eq('id', id).single();
-  if (p) {
-    await supabase.from('transactions').insert({
-      id: `TXN-${Date.now()}`,
-      type: 'debit',
-      type_ar: `سحب رصيد مالي - ${p.id}`,
-      amount: -Number(p.amount),
-      reference: p.id,
-      status: 'Completed',
-      merchant_id: p.merchant_id
-    });
+  await supabase.from('transactions').insert({
+    id: `TXN-${Date.now()}`,
+    type: 'debit',
+    type_ar: `سحب رصيد مالي - ${p.id}`,
+    amount: -amtVal,
+    reference: p.id,
+    status: 'Completed',
+    merchant_id: p.merchant_id
+  });
 
-    if (safeId) {
-      await recordSafeTransaction({
-        safeId: safeId,
-        type: 'withdrawal',
-        amount: Number(p.amount),
-        description: `صرف طلب سحب رصيد للتاجر (${p.merchant_id})`,
-        ref: p.id
-      });
-    }
+  if (safeId) {
+    await recordSafeTransaction({
+      safeId: safeId,
+      type: 'withdrawal',
+      amount: amtVal,
+      description: `صرف طلب سحب رصيد للتاجر (${p.merchant_id})`,
+      ref: p.id
+    });
   }
+
   return getPayoutRequests();
 }
 
@@ -497,22 +507,40 @@ export async function getTransactionLog() {
 }
 
 export async function manualCredit(merchantId, amount, description, type = 'credit', safeId = 'SAFE-001') {
-  const amtVal = type === 'debit' ? -Math.abs(Number(amount)) : Math.abs(Number(amount));
+  const amtVal = Math.abs(Number(amount || 0));
+  if (amtVal <= 0) throw new Error('المبلغ يجب أن يكون أكبر من صفر');
+
+  const safes = await getSafes();
+  const safeObj = safes.find(s => s.id === safeId);
+
+  // If adding credit to merchant wallet (type === 'credit'), it is a WITHDRAWAL from the selected Safe!
+  // Validate safe balance
+  if (type === 'credit' && safeId) {
+    const currentSafeBal = Number(safeObj?.balance || 0);
+    if (currentSafeBal < amtVal) {
+      throw new Error(`رصيد الخزينة المحددة (${safeObj?.name || safeId}) غير كافٍ لإتمام الإيداع. الرصيد المتاح: ${currentSafeBal} د.ل - المطلوب: ${amtVal} د.ل`);
+    }
+  }
+
+  const transactionAmt = type === 'debit' ? -amtVal : amtVal;
   const defaultDesc = type === 'debit' ? 'تسوية / خصم يدوي من المحفظة' : 'إيداع يدوي في المحفظة';
+
   await supabase.from('transactions').insert({
     id: `TXN-${Date.now()}`,
     type: type === 'debit' ? 'debit' : 'credit',
     type_ar: description || defaultDesc,
-    amount: amtVal,
+    amount: transactionAmt,
     reference: 'MANUAL_SETTLEMENT',
     merchant_id: merchantId
   });
 
   if (safeId) {
+    // Money into merchant wallet (credit) = WITHDRAWAL from safe
+    // Money out of merchant wallet (debit) = DEPOSIT into safe
     await recordSafeTransaction({
       safeId: safeId,
-      type: type === 'debit' ? 'withdrawal' : 'deposit',
-      amount: Math.abs(Number(amount)),
+      type: type === 'debit' ? 'deposit' : 'withdrawal',
+      amount: amtVal,
       description: `تسوية يدوي لمجموع المحفظة (${description || defaultDesc})`,
       ref: 'MANUAL'
     });
@@ -1103,6 +1131,15 @@ export async function recordSafeTransaction({ safeId, type, amount, description,
   const safes = await getSafes();
   const amtVal = Math.abs(Number(amount || 0));
   const safeObj = safes.find(s => s.id === safeId);
+  const currentBal = Number(safeObj?.balance || 0);
+
+  // Validate balance if withdrawing from safe (except field driver custody safe)
+  if ((type === 'withdrawal' || type === 'transfer_out') && safeId !== 'SAFE-005') {
+    if (currentBal < amtVal) {
+      throw new Error(`رصيد الخزينة المحددة (${safeObj?.name || safeId}) غير كافٍ لإتمام العملية. الرصيد المتاح: ${currentBal} د.ل - المطلوب: ${amtVal} د.ل`);
+    }
+  }
+
   const txId = `STX-${Date.now()}-${Math.floor(Math.random() * 100)}`;
   const descStr = description || 'معاملة خزينة';
   const refStr = ref || 'SYS';
@@ -1142,6 +1179,11 @@ export async function transferBetweenSafes(fromSafeId, toSafeId, amount, note) {
   const safes = await getSafes();
   const fromSafe = safes.find(s => s.id === fromSafeId);
   const toSafe = safes.find(s => s.id === toSafeId);
+  const fromBal = Number(fromSafe?.balance || 0);
+
+  if (fromBal < amtVal) {
+    throw new Error(`رصيد الخزينة المصدر (${fromSafe?.name || fromSafeId}) غير كافٍ للتحويل. الرصيد المتاح: ${fromBal} د.ل - المطلوب: ${amtVal} د.ل`);
+  }
 
   await recordSafeTransaction({
     safeId: fromSafeId,

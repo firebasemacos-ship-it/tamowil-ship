@@ -132,20 +132,28 @@ export default function WalletManager() {
   }, [merchantTxLog, searchQuery]);
 
   // ── Actions ───────────────────────────────────────────────────
-  function doApprove(id) {
-    approvePayoutRequest(id, selectedSafeId || 'SAFE-001');
-    setConfirmId(null);
+  async function doApprove(id) {
+    try {
+      await approvePayoutRequest(id, selectedSafeId || 'SAFE-001');
+      setConfirmId(null);
+    } catch (err) {
+      alert(err.message || 'حدث خطأ أثناء اعتماد العملية');
+    }
   }
   function doReject(id) {
     rejectPayoutRequest(id);
     setConfirmId(null); setRejectNote('');
   }
-  function doManualCredit(e) {
+  async function doManualCredit(e) {
     e.preventDefault();
     if (!manualForm.merchantId || !manualForm.amount) return;
-    manualCredit(manualForm.merchantId, manualForm.amount, manualForm.description, manualForm.type || 'credit', manualForm.safeId || 'SAFE-001');
-    setManualForm({ merchantId: '', amount: '', type: 'credit', description: '', safeId: 'SAFE-001' });
-    setShowManual(false);
+    try {
+      await manualCredit(manualForm.merchantId, manualForm.amount, manualForm.description, manualForm.type || 'credit', manualForm.safeId || 'SAFE-001');
+      setManualForm({ merchantId: '', amount: '', type: 'credit', description: '', safeId: 'SAFE-001' });
+      setShowManual(false);
+    } catch (err) {
+      alert(err.message || 'حدث خطأ أثناء إجراء التسوية');
+    }
   }
 
   // ── Tab buttons shared style ──────────────────────────────────
