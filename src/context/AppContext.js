@@ -167,6 +167,7 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     refreshAllData();
+    const safetyTimer = setTimeout(() => setLoading(false), 1500);
 
     // Setup Supabase Realtime Subscription + High-Speed Hybrid Polling
     const fetchSoft = async () => {
