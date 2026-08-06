@@ -128,21 +128,26 @@ export default function SafesManager() {
     setShowEditModal(false);
   }
 
+  const [transferError, setTransferError] = useState(null);
+  const [actionError, setActionError]     = useState(null);
+
   async function handleTransferSubmit(e) {
     e.preventDefault();
     if (!transferForm.fromSafeId || !transferForm.toSafeId || !transferForm.amount) return;
+    setTransferError(null);
     try {
       await transferBetweenSafes(transferForm.fromSafeId, transferForm.toSafeId, transferForm.amount, transferForm.note);
       setTransferForm({ fromSafeId: '', toSafeId: '', amount: '', note: '' });
       setShowTransferModal(false);
     } catch (err) {
-      alert(err.message || 'حدث خطأ أثناء إجراء التحويل بين الخزائن');
+      setTransferError(err.message || 'حدث خطأ أثناء إجراء التحويل بين الخزائن');
     }
   }
 
   async function handleActionSubmit(e) {
     e.preventDefault();
     if (!actionForm.safeId || !actionForm.amount || !showActionModal) return;
+    setActionError(null);
     try {
       await recordSafeTransaction({
         safeId: actionForm.safeId,
@@ -154,7 +159,7 @@ export default function SafesManager() {
       setActionForm({ safeId: '', amount: '', description: '', ref: '' });
       setShowActionModal(null);
     } catch (err) {
-      alert(err.message || 'حدث خطأ أثناء تنفيذ المعاملة على الخزينة');
+      setActionError(err.message || 'حدث خطأ أثناء تنفيذ المعاملة على الخزينة');
     }
   }
 
@@ -804,6 +809,24 @@ export default function SafesManager() {
                   <input required type="number" min="1" className="glass-input w-full" placeholder="0.00"
                     value={transferForm.amount} onChange={e => setTransferForm(p => ({ ...p, amount: e.target.value }))} />
                 </div>
+                {transferError && (
+                  <div style={{
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, rgba(239,68,68,0.18), rgba(220,38,38,0.12))',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    color: '#EF4444',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}>
+                    <span>⚠️</span>
+                    <span style={{ flex: 1, color: 'var(--text-primary)' }}>{transferError}</span>
+                    <button type="button" onClick={() => setTransferError(null)} style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+                  </div>
+                )}
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
                     {isAr ? 'ملاحظة التحويل' : 'Transfer Note'}

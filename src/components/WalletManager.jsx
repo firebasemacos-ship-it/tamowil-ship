@@ -71,6 +71,7 @@ export default function WalletManager() {
   const [selectedMerchant, setSelectedMerchant] = useState(null);
   const [showManual, setShowManual]   = useState(false);
   const [manualForm, setManualForm]   = useState({ merchantId: '', amount: '', type: 'credit', description: '', safeId: 'SAFE-001' });
+  const [manualError, setManualError] = useState(null);
   const [selectedSafeId, setSelectedSafeId]   = useState('SAFE-001');
   const [printMode, setPrintMode]     = useState(null); // 'payouts' | 'wallet'
 
@@ -147,6 +148,7 @@ export default function WalletManager() {
   async function doManualCredit(e) {
     e.preventDefault();
     if (!manualForm.merchantId || !manualForm.amount) return;
+    setManualError(null);
     try {
       await manualCredit(manualForm.merchantId, manualForm.amount, manualForm.description, manualForm.type || 'credit', manualForm.safeId || 'SAFE-001');
       setManualForm({ merchantId: '', amount: '', type: 'credit', description: '', safeId: 'SAFE-001' });
@@ -608,6 +610,53 @@ export default function WalletManager() {
                 <input type="text" className="glass-input" placeholder={isAr ? (manualForm.type === 'debit' ? 'مثال: تسوية نقدية للمحفظة' : 'مثال: شحن رصيد تعويضي') : 'e.g. Manual settlement note'}
                   value={manualForm.description} onChange={e => setManualForm(p => ({ ...p, description: e.target.value }))} />
               </div>
+              {manualError && (
+                <div style={{
+                  padding: '14px 16px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, rgba(239,68,68,0.18), rgba(220,38,38,0.12))',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  boxShadow: '0 8px 24px rgba(239, 68, 68, 0.2)',
+                  color: '#EF4444',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  lineHeight: 1.5
+                }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
+                    background: 'rgba(239, 68, 68, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, fontSize: '13px', marginBottom: '2px', color: '#F87171' }}>
+                      {isAr ? 'تنبيه - تعذر إتمام العملية' : 'Transaction Alert'}
+                    </div>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{manualError}</div>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setManualError(null)}
+                    style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', opacity: 0.8, padding: '4px', fontSize: '14px', fontWeight: 'bold' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
               <div style={{ padding: '12px 14px', borderRadius: '12px', background: manualForm.type === 'debit' ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.06)', border: `1px solid ${manualForm.type === 'debit' ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)'}`, display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '12px', color: 'var(--text-secondary)' }}>
                 <span style={{ color: manualForm.type === 'debit' ? '#EF4444' : '#10B981', flexShrink: 0 }}>{Icon.info}</span>
                 {isAr 
