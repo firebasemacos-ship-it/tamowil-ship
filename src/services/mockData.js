@@ -513,14 +513,36 @@ export async function getDrivers() {
   const { data: drivers, error } = await supabase.from('drivers').select('*');
   if (error) return [];
 
-  const { data: shipments } = await supabase.from('shipments').select('assigned_driver_id, status, created_at');
+  const { data: shipments } = await supabase
+    .from('shipments')
+    .select('assigned_driver_id, status, price, delivery_fee, delivery_charge_on');
+
+  const { data: settlements } = await supabase
+    .from('driver_settlements')
+    .select('driver_id, amount, status');
 
   return drivers.map(d => {
     const dShipments = (shipments || []).filter(s => s.assigned_driver_id === d.id);
-    const completedCount = dShipments.filter(s => s.status === 'Delivered' || s.status === 'تم التسليم').length;
+    const deliveredShipments = dShipments.filter(s => s.status === 'Delivered' || s.status === 'تم التسليم');
+    
+    // Dynamic Single Source of Truth calculation for driver custody
+    const totalCollectedFromShipments = deliveredShipments.reduce((sum, s) => {
+      const price = Number(s.price || 0);
+      const fee = Number(s.delivery_fee || 0);
+      const driverOwes = (s.delivery_charge_on === 'المرسل') ? price : (price - fee);
+      return sum + Math.max(0, driverOwes);
+    }, 0);
+
+    const dSettlements = (settlements || []).filter(st => st.driver_id === d.id && (st.status === 'Settled' || !st.status));
+    const totalSettledFromSettlements = dSettlements.reduce((sum, st) => sum + Number(st.amount || 0), 0);
+
+    const pendingSettlement = Math.max(0, totalCollectedFromShipments - totalSettledFromSettlements);
 
     const mapped = mapDriverFromDb(d);
-    mapped.shipmentsCompleted = completedCount > 0 ? completedCount : mapped.shipmentsCompleted;
+    mapped.codCollected = totalCollectedFromShipments > 0 ? totalCollectedFromShipments : mapped.codCollected;
+    mapped.codSettled = totalSettledFromSettlements > 0 ? totalSettledFromSettlements : mapped.codSettled;
+    mapped.pendingSettlement = pendingSettlement;
+    mapped.shipmentsCompleted = deliveredShipments.length;
     mapped.shipmentsToday = dShipments.length;
     return mapped;
   });
