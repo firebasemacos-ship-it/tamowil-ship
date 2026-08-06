@@ -202,8 +202,8 @@ export function AppProvider({ children }) {
       })
       .subscribe();
 
-    // 3-second high-speed hybrid polling fallback to guarantee sub-second synchronization
-    const pollInterval = setInterval(fetchSoft, 3000);
+    // 1-second high-speed hybrid polling loop for instant synchronization
+    const pollInterval = setInterval(fetchSoft, 1000);
 
     return () => {
       supabase.removeChannel(channel);
