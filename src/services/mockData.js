@@ -340,8 +340,22 @@ export async function getUsers() {
     const totalEarnedFromShipments = mShipments.reduce((sum, s) => sum + (Number(s.price || 0) - Number(s.delivery_fee || 0) - Number(s.cod_fee || 0)), 0);
     const totalWithdrawnFromPayouts = mApprovedPayouts.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-    const manualCredits = mTransactions.filter(t => t.type === 'credit' && Number(t.amount || 0) > 0).reduce((sum, t) => sum + Number(t.amount || 0), 0);
-    const manualDebits = mTransactions.filter(t => (t.type === 'debit' || Number(t.amount || 0) < 0) && !t.type?.startsWith('safe_')).reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0);
+    // Only count manual credit/debit transactions that are NOT already recorded as shipment COD or payout withdrawals
+    const manualCredits = mTransactions.filter(t => {
+      if (t.type !== 'credit' || Number(t.amount || 0) <= 0) return false;
+      const ref = t.reference || '';
+      if (ref.startsWith('STX-') || ref.startsWith('STL-')) return false;
+      const isShipmentRef = (shipments || []).some(s => s.tracking_number === ref || s.id === ref);
+      return !isShipmentRef;
+    }).reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+    const manualDebits = mTransactions.filter(t => {
+      if ((t.type !== 'debit' && Number(t.amount || 0) >= 0) || t.type?.startsWith('safe_')) return false;
+      const ref = t.reference || '';
+      if (ref.startsWith('STX-') || ref.startsWith('STL-')) return false;
+      const isPayoutRef = (payouts || []).some(p => p.id === ref);
+      return !isPayoutRef;
+    }).reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0);
 
     const totalEarned = totalEarnedFromShipments + manualCredits;
     const totalWithdrawn = totalWithdrawnFromPayouts + manualDebits;
