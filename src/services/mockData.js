@@ -359,7 +359,7 @@ export async function getUsers() {
 
     const totalEarned = totalEarnedFromShipments + manualCredits;
     const totalWithdrawn = totalWithdrawnFromPayouts + manualDebits;
-    const walletBalance = Math.max(0, totalEarned - totalWithdrawn);
+    const walletBalance = totalEarned - totalWithdrawn;
     
     return {
       id: m.id,
