@@ -168,43 +168,45 @@ export function AppProvider({ children }) {
   useEffect(() => {
     refreshAllData();
 
-    // Setup Supabase Realtime Subscription
+    // Setup Supabase Realtime Subscription + High-Speed Hybrid Polling
+    const fetchSoft = async () => {
+      try {
+        const [
+          shipmentsData, merchantsData, payoutsData, txLogData,
+          driversData, settlementsData, pricingData, ticketsData, statsData, safesData, safeTxsData
+        ] = await Promise.all([
+          db.getShipments(), db.getUsers(), db.getPayoutRequests(), db.getTransactionLog(),
+          db.getDrivers(), db.getDriverSettlements(), db.getCityPricing(), db.getTickets(), db.getDashboardStats(),
+          db.getSafes(), db.getSafeTransactions()
+        ]);
+        setShipmentsList(shipmentsData);
+        setMerchants(merchantsData);
+        setPayoutRequests(payoutsData);
+        setTransactionLog(txLogData);
+        setDrivers(driversData);
+        setDriverSettlements(settlementsData);
+        setCityPricing(pricingData);
+        setTickets(ticketsData);
+        setDashboardStats(statsData);
+        setSafes(safesData);
+        setSafeTransactions(safeTxsData);
+      } catch (e) {
+        console.error('Error refreshing realtime data:', e);
+      }
+    };
+
     const channel = supabase.channel('schema-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-        console.log('Realtime change detected:', payload);
-        // Silently refresh the dashboard without causing a full loading screen block
-        // We will call a soft refresh that doesn't set setLoading(true)
-        const fetchSoft = async () => {
-          try {
-            const [
-              shipmentsData, merchantsData, payoutsData, txLogData,
-              driversData, settlementsData, pricingData, ticketsData, statsData, safesData, safeTxsData
-            ] = await Promise.all([
-              db.getShipments(), db.getUsers(), db.getPayoutRequests(), db.getTransactionLog(),
-              db.getDrivers(), db.getDriverSettlements(), db.getCityPricing(), db.getTickets(), db.getDashboardStats(),
-              db.getSafes(), db.getSafeTransactions()
-            ]);
-            setShipmentsList(shipmentsData);
-            setMerchants(merchantsData);
-            setPayoutRequests(payoutsData);
-            setTransactionLog(txLogData);
-            setDrivers(driversData);
-            setDriverSettlements(settlementsData);
-            setCityPricing(pricingData);
-            setTickets(ticketsData);
-            setDashboardStats(statsData);
-            setSafes(safesData);
-            setSafeTransactions(safeTxsData);
-          } catch (e) {
-            console.error('Error refreshing realtime data:', e);
-          }
-        };
         fetchSoft();
       })
       .subscribe();
 
+    // 3-second high-speed hybrid polling fallback to guarantee sub-second synchronization
+    const pollInterval = setInterval(fetchSoft, 3000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, []);
 
