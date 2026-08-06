@@ -546,6 +546,17 @@ export async function manualCredit(merchantId, amount, description, type = 'cred
     });
   }
 
+  // Sync computed merchant wallet balance into Supabase merchants table column
+  try {
+    const merchants = await getUsers();
+    const updatedM = merchants.find(m => m.id === merchantId);
+    if (updatedM) {
+      await supabase.from('merchants').update({ wallet_balance: updatedM.walletBalance }).eq('id', merchantId);
+    }
+  } catch (e) {
+    console.warn('Sync merchant wallet_balance to DB error:', e);
+  }
+
   return getTransactionLog();
 }
 
@@ -1168,6 +1179,17 @@ export async function recordSafeTransaction({ safeId, type, amount, description,
       merchant_id: safeId
     });
   } catch (e) {}
+
+  // Sync new balance directly to Supabase safes table column
+  try {
+    const updatedSafes = await getSafes();
+    const updatedSafeObj = updatedSafes.find(s => s.id === safeId);
+    if (updatedSafeObj) {
+      await supabase.from('safes').update({ balance: updatedSafeObj.balance }).eq('id', safeId);
+    }
+  } catch (e) {
+    console.warn('Sync safe balance to DB error:', e);
+  }
 
   return getSafeTransactions();
 }
