@@ -189,10 +189,10 @@ export default function WalletManager() {
       {/* ── KPI Cards ────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '16px' }}>
         {[
-          { labelAr: 'إجمالي الأرصدة', labelEn: 'Total Balances', val: fmt(totalBalances), color: '#818CF8', rgb: '129,140,248', icon: Icon.wallet, sub: isAr ? `${merchants.length} تجار` : `${merchants.length} merchants` },
-          { labelAr: 'طلبات سحب معلقة', labelEn: 'Pending Payouts', val: fmt(totalPending), color: '#F59E0B', rgb: '245,158,11', icon: Icon.clock, sub: isAr ? `${pendingCount} طلب` : `${pendingCount} requests`, urgent: pendingCount > 0 },
-          { labelAr: 'إجمالي المصروفات', labelEn: 'Total Paid Out', val: fmt(totalApproved), color: '#10B981', rgb: '16,185,129', icon: Icon.check, sub: isAr ? 'موافق عليها' : 'Approved' },
-          { labelAr: 'إجمالي المعاملات', labelEn: 'Transactions', val: txLog.length, color: '#60A5FA', rgb: '96,165,250', icon: Icon.trending, sub: isAr ? 'إيداع وسحب' : 'Credits & Debits' },
+          { labelAr: 'إجمالي الأرصدة', labelEn: 'Total Balances', rawVal: totalBalances, color: '#818CF8', rgb: '129,140,248', icon: Icon.wallet, sub: isAr ? `${merchants.length} تجار` : `${merchants.length} merchants` },
+          { labelAr: 'طلبات سحب معلقة', labelEn: 'Pending Payouts', rawVal: totalPending, color: '#F59E0B', rgb: '245,158,11', icon: Icon.clock, sub: isAr ? `${pendingCount} طلب` : `${pendingCount} requests`, urgent: pendingCount > 0 },
+          { labelAr: 'إجمالي المصروفات', labelEn: 'Total Paid Out', rawVal: totalApproved, color: '#10B981', rgb: '16,185,129', icon: Icon.check, sub: isAr ? 'موافق عليها' : 'Approved' },
+          { labelAr: 'إجمالي المعاملات', labelEn: 'Transactions', rawVal: txLog.length, color: '#60A5FA', rgb: '96,165,250', icon: Icon.trending, sub: isAr ? 'إيداع وسحب' : 'Credits & Debits', isInt: true },
         ].map((c, i) => (
           <div key={i} className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', overflow: 'hidden' }}>
             {c.urgent && <div style={{ position: 'absolute', top: '10px', insetInlineStart: '10px', width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 0 3px rgba(239,68,68,0.3)', animation: 'pulse 2s infinite' }} />}
@@ -201,7 +201,9 @@ export default function WalletManager() {
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: '3px' }}>{isAr ? c.labelAr : c.labelEn}</div>
-              <div style={{ fontSize: '19px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }} dir="ltr">{c.val}</div>
+              <div style={{ fontSize: '19px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }} dir="ltr">
+                <AnimatedCounter value={c.rawVal} suffix={c.isInt ? '' : (isAr ? ' د.ل' : ' LYD')} />
+              </div>
               <div style={{ fontSize: '11px', color: c.urgent ? '#F59E0B' : 'var(--text-tertiary)', marginTop: '3px', fontWeight: c.urgent ? 700 : 400 }}>{c.sub}</div>
             </div>
           </div>
