@@ -250,6 +250,7 @@ export function AppProvider({ children }) {
       setSafeTransactions(safeTxsData);
     } catch (e) {
       console.error('Error executing action:', e);
+      throw e;
     }
   };
 
