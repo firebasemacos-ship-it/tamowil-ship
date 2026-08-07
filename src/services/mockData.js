@@ -328,9 +328,9 @@ export async function getUsers() {
   if (error) return [];
   
   // Calculate balances dynamically
-  const { data: shipments } = await supabase.from('shipments').select('price, delivery_fee, cod_fee, status, merchant_id');
-  const { data: payouts } = await supabase.from('payout_requests').select('amount, status, merchant_id');
-  const { data: transactions } = await supabase.from('transactions').select('amount, type, merchant_id');
+  const { data: shipments } = await supabase.from('shipments').select('id, tracking_number, price, delivery_fee, cod_fee, status, merchant_id');
+  const { data: payouts } = await supabase.from('payout_requests').select('id, amount, status, merchant_id');
+  const { data: transactions } = await supabase.from('transactions').select('id, amount, type, reference, type_ar, merchant_id');
 
   return merchants.map(m => {
     const mShipments = (shipments || []).filter(s => s.merchant_id === m.id && (s.status === 'Delivered' || s.status === 'تم التسليم'));
@@ -343,17 +343,21 @@ export async function getUsers() {
     // Only count manual credit/debit transactions that are NOT already recorded as shipment COD or payout withdrawals
     const manualCredits = mTransactions.filter(t => {
       if (t.type !== 'credit' || Number(t.amount || 0) <= 0) return false;
-      const ref = t.reference || '';
-      if (ref.startsWith('STX-') || ref.startsWith('STL-')) return false;
-      const isShipmentRef = (shipments || []).some(s => s.tracking_number === ref || s.id === ref);
+      const ref = String(t.reference || '');
+      const typeAr = String(t.type_ar || '');
+      if (ref.startsWith('STX-') || ref.startsWith('STL-') || ref.startsWith('SAFE') || ref.startsWith('TXN-') || ref.startsWith('TX-') || typeAr.includes('تحصيل')) return false;
+      const isShipmentRef = (shipments || []).some(s => 
+        (s.tracking_number && (ref === s.tracking_number || ref.includes(s.tracking_number))) || 
+        (s.id && (ref === s.id || ref.includes(s.id)))
+      );
       return !isShipmentRef;
     }).reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
     const manualDebits = mTransactions.filter(t => {
       if ((t.type !== 'debit' && Number(t.amount || 0) >= 0) || t.type?.startsWith('safe_')) return false;
-      const ref = t.reference || '';
-      if (ref.startsWith('STX-') || ref.startsWith('STL-')) return false;
-      const isPayoutRef = (payouts || []).some(p => p.id === ref);
+      const ref = String(t.reference || '');
+      if (ref.startsWith('STX-') || ref.startsWith('STL-') || ref.startsWith('SAFE')) return false;
+      const isPayoutRef = (payouts || []).some(p => p.id === ref || ref.includes(String(p.id)));
       return !isPayoutRef;
     }).reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0);
 
