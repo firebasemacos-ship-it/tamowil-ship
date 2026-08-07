@@ -327,8 +327,8 @@ export async function getUsers() {
   const { data: merchants, error } = await supabase.from('merchants').select('*');
   if (error) return [];
   
-  // Calculate balances dynamically
-  const { data: shipments } = await supabase.from('shipments').select('id, tracking_number, price, delivery_fee, cod_fee, status, merchant_id');
+  // Calculate balances dynamically (shipments table primary key is tracking_number)
+  const { data: shipments } = await supabase.from('shipments').select('tracking_number, price, product_price, delivery_fee, cod_fee, status, merchant_id, delivery_charge_on');
   const { data: payouts } = await supabase.from('payout_requests').select('id, amount, status, merchant_id');
   const { data: transactions } = await supabase.from('transactions').select('id, amount, type, reference, type_ar, merchant_id');
 
@@ -337,7 +337,13 @@ export async function getUsers() {
     const mApprovedPayouts = (payouts || []).filter(p => p.merchant_id === m.id && p.status === 'Approved');
     const mTransactions = (transactions || []).filter(t => t.merchant_id === m.id);
     
-    const totalEarnedFromShipments = mShipments.reduce((sum, s) => sum + (Number(s.price || 0) - Number(s.delivery_fee || 0) - Number(s.cod_fee || 0)), 0);
+    const totalEarnedFromShipments = mShipments.reduce((sum, s) => {
+      const price = Number(s.price || 0);
+      const deliveryFee = Number(s.delivery_fee || 0);
+      const prodPrice = Number(s.product_price || 0);
+      const net = (s.delivery_charge_on === 'المرسل') ? price : (price > 0 ? (price - deliveryFee) : prodPrice);
+      return sum + net;
+    }, 0);
     const totalWithdrawnFromPayouts = mApprovedPayouts.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
     // Only count manual credit/debit transactions that are NOT already recorded as shipment COD or payout withdrawals
@@ -347,8 +353,7 @@ export async function getUsers() {
       const typeAr = String(t.type_ar || '');
       if (ref.startsWith('STX-') || ref.startsWith('STL-') || ref.startsWith('SAFE') || ref.startsWith('TXN-') || ref.startsWith('TX-') || typeAr.includes('تحصيل')) return false;
       const isShipmentRef = (shipments || []).some(s => 
-        (s.tracking_number && (ref === s.tracking_number || ref.includes(s.tracking_number))) || 
-        (s.id && (ref === s.id || ref.includes(s.id)))
+        (s.tracking_number && (ref === s.tracking_number || ref.includes(s.tracking_number)))
       );
       return !isShipmentRef;
     }).reduce((sum, t) => sum + Number(t.amount || 0), 0);
