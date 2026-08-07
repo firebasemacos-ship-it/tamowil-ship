@@ -953,7 +953,18 @@ export async function getSafeTransactions() {
     console.warn('Fetch transactions backup error:', err);
   }
 
-  return txs.sort((a, b) => new Date(b.date) - new Date(a.date));
+  // Deduplicate safe transactions by safeId + ref + type
+  const uniqueTxs = [];
+  const seenKeys = new Set();
+  for (const t of txs) {
+    const key = `${t.safeId}_${t.ref}_${t.type}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      uniqueTxs.push(t);
+    }
+  }
+
+  return uniqueTxs.sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
 export async function getSafes() {
@@ -995,7 +1006,13 @@ export async function getSafes() {
       const safeObj = safes.find(s => s.id === 'SAFE-005');
       for (const sh of deliveredShipments) {
         const trk = sh.tracking_number;
-        const alreadyRecorded = txs.some(t => t.ref === trk && t.type === 'deposit');
+        const { data: dbCheck } = await supabase
+          .from('safe_transactions')
+          .select('id')
+          .eq('safe_id', 'SAFE-005')
+          .eq('reference', trk);
+
+        const alreadyRecorded = dbCheck && dbCheck.length > 0;
         if (!alreadyRecorded) {
           const netCustodyAmt = (sh.delivery_charge_on === 'المرسل')
             ? Number(sh.price || 0)
