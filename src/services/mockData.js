@@ -534,11 +534,10 @@ export async function manualCredit(merchantId, amount, description, type = 'cred
   });
 
   if (safeId) {
-    // Money into merchant wallet (credit) = WITHDRAWAL from safe
-    // Money out of merchant wallet (debit) = DEPOSIT into safe
+    // Both merchant credit and merchant debit settlement withdraw cash from the Safe!
     await recordSafeTransaction({
       safeId: safeId,
-      type: type === 'debit' ? 'deposit' : 'withdrawal',
+      type: 'withdrawal',
       amount: amtVal,
       description: `تسوية يدوي لمجموع المحفظة (${description || defaultDesc})`,
       ref: 'MANUAL'
