@@ -471,7 +471,7 @@ export async function approvePayoutRequest(id, safeId = 'SAFE-001') {
       safeId: safeId,
       type: 'withdrawal',
       amount: amtVal,
-      description: `صرف طلب سحب رصيد للتاجر (${p.merchant_id})`,
+      description: `صرف طلب سحب أرباح للتاجر (${p.store_name || p.merchant_name})`,
       ref: p.id
     });
   }
@@ -513,12 +513,11 @@ export async function manualCredit(merchantId, amount, description, type = 'cred
   const safes = await getSafes();
   const safeObj = safes.find(s => s.id === safeId);
 
-  // If adding credit to merchant wallet (type === 'credit'), it is a WITHDRAWAL from the selected Safe!
-  // Validate safe balance
-  if (type === 'credit' && safeId) {
+  // Validate safe balance for safe operations
+  if (safeId) {
     const currentSafeBal = Number(safeObj?.balance || 0);
     if (currentSafeBal < amtVal) {
-      throw new Error(`رصيد الخزينة المحددة (${safeObj?.name || safeId}) غير كافٍ لإتمام الإيداع. الرصيد المتاح: ${currentSafeBal} د.ل - المطلوب: ${amtVal} د.ل`);
+      throw new Error(`رصيد الخزينة المحددة (${safeObj?.name || safeId}) غير كافٍ لإتمام العملية. الرصيد المتاح: ${currentSafeBal} د.ل - المطلوب: ${amtVal} د.ل`);
     }
   }
 
