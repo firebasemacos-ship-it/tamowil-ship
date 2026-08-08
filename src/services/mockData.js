@@ -5,6 +5,12 @@ const safeNum = (v, fallback = 0) => {
   return isNaN(n) ? fallback : n;
 };
 
+export function isSenderPaid(chargeOn) {
+  if (!chargeOn) return false;
+  const str = String(chargeOn).trim().toLowerCase();
+  return str === 'المرسل' || str === 'المتجر' || str === 'sender' || str === 'merchant';
+}
+
 // Helper to map DB shipments to Frontend format
 function mapShipmentFromDb(sh) {
   return {
@@ -252,7 +258,7 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
       }
 
       // Calculate net COD amount (excluding delivery fee which belongs to the driver)
-      const netCustodyAmt = (sh.delivery_charge_on === 'المرسل')
+      const netCustodyAmt = isSenderPaid(sh.delivery_charge_on)
         ? Number(sh.price || 0)
         : Math.max(0, (Number(sh.price || 0) > 0 ? Number(sh.price) - Number(sh.delivery_fee || 0) : Number(sh.product_price || 0)));
 
@@ -278,7 +284,7 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
           .single();
 
         if (drv) {
-          const driverOwes = (sh.delivery_charge_on === 'المرسل') ? Number(sh.product_price || sh.price || 0) : Number(sh.price || 0);
+          const driverOwes = isSenderPaid(sh.delivery_charge_on) ? Number(sh.product_price || sh.price || 0) : Number(sh.price || 0);
           const newCollected = Number(drv.cod_collected || 0) + driverOwes;
           const newPending = Number(drv.pending_settlement || 0) + driverOwes;
           await supabase
@@ -342,7 +348,7 @@ export async function getUsers() {
       const deliveryFee = Number(s.delivery_fee || 0);
       const codFee = Number(s.cod_fee || 0);
       const prodPrice = Number(s.product_price || 0) > 0 ? Number(s.product_price) : Math.max(0, price - deliveryFee - codFee);
-      if (s.delivery_charge_on === 'المرسل') {
+      if (isSenderPaid(s.delivery_charge_on)) {
         return sum + Math.max(0, prodPrice - deliveryFee - codFee);
       } else {
         return sum + prodPrice;
@@ -608,7 +614,7 @@ export async function getDrivers() {
     const totalCollectedFromShipments = deliveredShipments.reduce((sum, s) => {
       const price = Number(s.price || 0);
       const prodPrice = Number(s.product_price || price);
-      const driverOwes = (s.delivery_charge_on === 'المرسل') ? prodPrice : price;
+      const driverOwes = isSenderPaid(s.delivery_charge_on) ? prodPrice : price;
       return sum + Math.max(0, driverOwes);
     }, 0);
 
@@ -1042,7 +1048,7 @@ export async function getSafes() {
 
         const alreadyRecorded = dbCheck && dbCheck.length > 0;
         if (!alreadyRecorded) {
-          const netCustodyAmt = (sh.delivery_charge_on === 'المرسل')
+          const netCustodyAmt = isSenderPaid(sh.delivery_charge_on)
             ? Number(sh.product_price || sh.price || 0)
             : Number(sh.price || (Number(sh.product_price || 0) + Number(sh.delivery_fee || 0) + Number(sh.cod_fee || 0)));
 
