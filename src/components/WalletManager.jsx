@@ -86,6 +86,19 @@ export default function WalletManager() {
   const [selectedSafeId, setSelectedSafeId] = useState('SAFE-001');
   const [printMode, setPrintMode]       = useState(null); // 'payouts' | 'wallet'
 
+  // Cooldown lock & Toast feedback states
+  const [cooldownTime, setCooldownTime] = useState(0);
+  const [toastMsg, setToastMsg]         = useState(null);
+
+  React.useEffect(() => {
+    if (cooldownTime > 0) {
+      const timer = setInterval(() => {
+        setCooldownTime(prev => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [cooldownTime]);
+
   const handlePrint = (mode) => {
     setPrintMode(mode);
     setTimeout(() => { window.print(); }, 100);
@@ -146,11 +159,18 @@ export default function WalletManager() {
 
   // ── Actions ───────────────────────────────────────────────────
   async function doApprove(id) {
+    if (cooldownTime > 0) return;
+    setConfirmId(null);
+    setCooldownTime(60);
+    setToastMsg(isAr ? '⏳ جاري اعتماد طلب السحب وصرف النقدية...' : 'Processing payout...');
+
     try {
       await approvePayoutRequest(id, selectedSafeId || 'SAFE-001');
-      setConfirmId(null);
+      setToastMsg(isAr ? '✅ تم اعتماد طلب السحب وتوفير الكاش بنجاح!' : 'Payout approved successfully!');
+      setTimeout(() => setToastMsg(null), 5000);
     } catch (err) {
-      alert(err.message || 'حدث خطأ أثناء اعتماد العملية');
+      setToastMsg(isAr ? `❌ تعذر اعتماد السحب: ${err.message || 'رصيد الخزينة غير كافٍ'}` : `Error: ${err.message}`);
+      setTimeout(() => setToastMsg(null), 6000);
     }
   }
 
@@ -162,14 +182,27 @@ export default function WalletManager() {
 
   async function doManualCredit(e) {
     e.preventDefault();
-    if (!manualForm.merchantId || !manualForm.amount) return;
+    if (!manualForm.merchantId || !manualForm.amount || cooldownTime > 0) return;
+
+    // 1. Instantly close modal & reset state to avoid duplicate clicks
+    const targetForm = { ...manualForm };
+    setShowManual(false);
     setManualError(null);
+    setManualForm({ merchantId: '', amount: '', type: 'payout', description: '', safeId: 'SAFE-001' });
+
+    // 2. Start 60-second cooldown lock
+    setCooldownTime(60);
+
+    // 3. Display instant feedback toast
+    setToastMsg(isAr ? '⏳ جاري تنفيذ التسوية المالية وإقفال المستحقات...' : 'Executing settlement...');
+
     try {
-      await manualCredit(manualForm.merchantId, manualForm.amount, manualForm.description, manualForm.type || 'payout', manualForm.safeId || 'SAFE-001');
-      setManualForm({ merchantId: '', amount: '', type: 'payout', description: '', safeId: 'SAFE-001' });
-      setShowManual(false);
+      await manualCredit(targetForm.merchantId, targetForm.amount, targetForm.description, targetForm.type || 'payout', targetForm.safeId || 'SAFE-001');
+      setToastMsg(isAr ? '✅ تم إتمام التسوية المالية بنجاح!' : 'Settlement executed successfully!');
+      setTimeout(() => setToastMsg(null), 5000);
     } catch (err) {
-      setManualError(err.message || (isAr ? 'حدث خطأ أثناء إجراء التسوية - يرجى التأكد من رصيد الخزينة' : 'Error performing settlement'));
+      setToastMsg(isAr ? `❌ تعذر إتمام التسوية: ${err.message || 'رصيد الخزينة المحددة غير كافٍ'}` : `Failed: ${err.message}`);
+      setTimeout(() => setToastMsg(null), 6000);
     }
   }
 
@@ -198,7 +231,20 @@ export default function WalletManager() {
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative' }}>
+
+      {/* Floating Status Toast Notification */}
+      {toastMsg && (
+        <div style={{
+          position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 99999,
+          padding: '14px 28px', borderRadius: '16px', fontWeight: 800, fontSize: '14px',
+          background: toastMsg.includes('❌') ? 'rgba(239,68,68,0.95)' : (toastMsg.includes('⏳') ? 'rgba(251,191,36,0.95)' : 'rgba(16,185,129,0.95)'),
+          color: '#fff', boxShadow: '0 10px 30px rgba(0,0,0,0.35)', backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', gap: '10px'
+        }}>
+          {toastMsg}
+        </div>
+      )}
 
       {/* ══════════════ 1. HEADER TITLE & QUICK ACTIONS ══════════════ */}
       <div className="glass-panel" style={{
@@ -239,17 +285,23 @@ export default function WalletManager() {
           </button>
 
           {/* New Manual Settlement Button */}
-          <button onClick={() => {
-            setManualForm({ merchantId: '', amount: '', type: 'payout', description: '', safeId: 'SAFE-001' });
-            setShowManual(true);
-          }} style={{
-            padding: '11px 22px', borderRadius: '14px', border: 'none',
-            background: 'linear-gradient(135deg, var(--primary-color), #059669)', color: '#fff',
-            fontWeight: 800, cursor: 'pointer', fontSize: '13px',
-            boxShadow: '0 4px 18px rgba(16,185,129,0.4)', display: 'flex', alignItems: 'center', gap: '8px',
-            transition: 'all 0.2s ease'
-          }}>
-            {Icon.plus} {isAr ? 'تسوية ماليّة يدويّة' : 'Manual Settlement'}
+          <button
+            disabled={cooldownTime > 0}
+            onClick={() => {
+              if (cooldownTime > 0) return;
+              setManualForm({ merchantId: '', amount: '', type: 'payout', description: '', safeId: 'SAFE-001' });
+              setShowManual(true);
+            }}
+            style={{
+              padding: '11px 22px', borderRadius: '14px', border: 'none',
+              background: cooldownTime > 0 ? 'rgba(128,128,128,0.2)' : 'linear-gradient(135deg, var(--primary-color), #059669)',
+              color: '#fff', fontWeight: 800, cursor: cooldownTime > 0 ? 'not-allowed' : 'pointer', fontSize: '13px',
+              boxShadow: cooldownTime > 0 ? 'none' : '0 4px 18px rgba(16,185,129,0.4)',
+              opacity: cooldownTime > 0 ? 0.7 : 1,
+              display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease'
+            }}
+          >
+            {Icon.plus} {cooldownTime > 0 ? (isAr ? `انتظر (${cooldownTime}ث)` : `Wait (${cooldownTime}s)`) : (isAr ? 'تسوية ماليّة يدويّة' : 'Manual Settlement')}
           </button>
         </div>
       </div>
@@ -535,23 +587,30 @@ export default function WalletManager() {
 
                     {/* Quick Settlement Button */}
                     {(m.walletBalance || 0) > 0 && (
-                      <button onClick={(e) => {
-                        e.stopPropagation();
-                        setManualForm({
-                          merchantId: m.id,
-                          amount: String(m.walletBalance || 0),
-                          type: 'payout',
-                          description: `تسوية وصرف أرصدة التاجر (${m.storeName})`,
-                          safeId: 'SAFE-001'
-                        });
-                        setShowManual(true);
-                      }} style={{
-                        padding: '8px 16px', borderRadius: '12px', border: 'none', cursor: 'pointer',
-                        fontSize: '12px', fontWeight: 800,
-                        background: 'linear-gradient(135deg, #10B981, #059669)', color: '#fff',
-                        boxShadow: '0 4px 14px rgba(16,185,129,0.35)', display: 'flex', alignItems: 'center', gap: '6px'
-                      }}>
-                        {Icon.check} {isAr ? 'تسوية مريحة' : 'Settle Wallet'}
+                      <button
+                        disabled={cooldownTime > 0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (cooldownTime > 0) return;
+                          setManualForm({
+                            merchantId: m.id,
+                            amount: String(m.walletBalance || 0),
+                            type: 'payout',
+                            description: `تسوية وصرف أرصدة التاجر (${m.storeName})`,
+                            safeId: 'SAFE-001'
+                          });
+                          setShowManual(true);
+                        }}
+                        style={{
+                          padding: '8px 16px', borderRadius: '12px', border: 'none',
+                          cursor: cooldownTime > 0 ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 800,
+                          background: cooldownTime > 0 ? 'rgba(128,128,128,0.2)' : 'linear-gradient(135deg, #10B981, #059669)',
+                          color: '#fff', opacity: cooldownTime > 0 ? 0.7 : 1,
+                          boxShadow: cooldownTime > 0 ? 'none' : '0 4px 14px rgba(16,185,129,0.35)',
+                          display: 'flex', alignItems: 'center', gap: '6px'
+                        }}
+                      >
+                        {Icon.check} {cooldownTime > 0 ? (isAr ? `انتظر (${cooldownTime}ث)` : `Wait (${cooldownTime}s)`) : (isAr ? 'تسوية مريحة' : 'Settle Wallet')}
                       </button>
                     )}
 
@@ -837,13 +896,18 @@ export default function WalletManager() {
                 }}>
                   {isAr ? 'إلغاء' : 'Cancel'}
                 </button>
-                <button type="submit" style={{
-                  padding: '12px 28px', borderRadius: '14px', border: 'none',
-                  background: manualForm.type === 'debit' ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'linear-gradient(135deg,#10B981,#059669)',
-                  color: '#fff', fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 16px rgba(${manualForm.type === 'debit' ? '239,68,68' : '16,185,129'},0.4)`,
-                  fontSize: '13px'
-                }}>
-                  {isAr ? 'تأكيد التسوية المالية' : 'Confirm Settlement'}
+                <button
+                  type="submit"
+                  disabled={cooldownTime > 0}
+                  style={{
+                    padding: '12px 28px', borderRadius: '14px', border: 'none',
+                    background: cooldownTime > 0 ? 'rgba(128,128,128,0.2)' : (manualForm.type === 'debit' ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'linear-gradient(135deg,#10B981,#059669)'),
+                    color: '#fff', fontWeight: 800, cursor: cooldownTime > 0 ? 'not-allowed' : 'pointer',
+                    boxShadow: cooldownTime > 0 ? 'none' : `0 4px 16px rgba(${manualForm.type === 'debit' ? '239,68,68' : '16,185,129'},0.4)`,
+                    opacity: cooldownTime > 0 ? 0.7 : 1, fontSize: '13px'
+                  }}
+                >
+                  {cooldownTime > 0 ? (isAr ? `انتظر (${cooldownTime}ث)` : `Wait (${cooldownTime}s)`) : (isAr ? 'تأكيد التسوية المالية' : 'Confirm Settlement')}
                 </button>
               </div>
             </form>
