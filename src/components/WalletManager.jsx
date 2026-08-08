@@ -477,7 +477,7 @@ export default function WalletManager() {
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '2px' }}>{isAr ? 'المبلغ المطلوب' : 'Requested Amount'}</div>
                   <div style={{ fontSize: '18px', fontWeight: 900, color: '#10B981' }} dir="ltr">
-                    {p.amount?.toLocaleString()} <span style={{ fontSize: '12px' }}>{isAr ? 'د.ل' : 'LYD'}</span>
+                    {Number(p.amount || 0).toLocaleString()} <span style={{ fontSize: '12px' }}>{isAr ? 'د.ل' : 'LYD'}</span>
                   </div>
                 </div>
 
@@ -954,7 +954,7 @@ export default function WalletManager() {
                 <tr key={p.id}>
                   <td>{p.id}</td>
                   <td>{p.merchantStore || p.storeName}</td>
-                  <td dir="ltr">{p.amount?.toLocaleString()} د.ل</td>
+                  <td dir="ltr">{Number(p.amount || 0).toLocaleString()} د.ل</td>
                   <td>{p.bankAccount || p.bankDetails}</td>
                   <td>{S_AR[p.status] || p.status}</td>
                   <td>{p.requestedAt ? new Date(p.requestedAt).toLocaleDateString('ar-LY') : ''}</td>
@@ -1002,7 +1002,7 @@ export default function WalletManager() {
                     <td>{t.description}</td>
                     <td>{t.date ? new Date(t.date).toLocaleDateString('ar-LY') : ''}</td>
                     <td>{t.type === 'credit' ? 'إيداع' : 'سحب'}</td>
-                    <td dir="ltr">{t.type === 'credit' ? '+' : '-'}{t.amount?.toLocaleString()} د.ل</td>
+                    <td dir="ltr">{t.type === 'credit' ? '+' : '-'}{Number(t.amount || 0).toLocaleString()} د.ل</td>
                     <td style={{ fontWeight: 'bold', color: '#059669' }}>مكتملة</td>
                   </tr>
                 ))}

@@ -9,7 +9,7 @@ export default function ReportsView() {
   const { lang, dashboardStats: stats, shipmentsList: shipments, merchants, dateFilter } = useApp();
   const isAr = lang === 'ar';
 
-  const fmt = v => `${v.toLocaleString()} ${isAr ? 'د.ل' : 'LYD'}`;
+  const fmt = v => `${Number(v || 0).toLocaleString()} ${isAr ? 'د.ل' : 'LYD'}`;
 
   // Revenue bar chart data (mock 7-day)
   const revenueData = stats.dailyRevenue;
@@ -208,15 +208,15 @@ export default function ReportsView() {
           <tbody>
             <tr>
               <td>الأرباح الإجمالية (إجمالي رسوم التوصيل والـ COD)</td>
-              <td dir="ltr" style={{ width: '150px' }}>{stats.grossProfits?.toLocaleString()} د.ل</td>
+              <td dir="ltr" style={{ width: '150px' }}>{Number(stats.grossProfits || 0).toLocaleString()} د.ل</td>
             </tr>
             <tr>
               <td>المبالغ المحصلة (دفع عند الاستلام - COD)</td>
-              <td dir="ltr">{stats.totalCodCollected?.toLocaleString()} د.ل</td>
+              <td dir="ltr">{Number(stats.totalCodCollected || 0).toLocaleString()} د.ل</td>
             </tr>
             <tr>
               <td style={{ fontWeight: 'bold' }}>صافي أرباح التوصيل للشركة (صافي عمولة الـ COD)</td>
-              <td dir="ltr" style={{ fontWeight: 'bold' }}>{stats.netCompanyProfits?.toLocaleString()} د.ل</td>
+              <td dir="ltr" style={{ fontWeight: 'bold' }}>{Number(stats.netCompanyProfits || 0).toLocaleString()} د.ل</td>
             </tr>
           </tbody>
         </table>
@@ -230,11 +230,11 @@ export default function ReportsView() {
           <tbody>
             <tr>
               <td>ما للشركة (أرصدة معلقة لدى السائقين والمناديب)</td>
-              <td dir="ltr" style={{ width: '150px' }}>{stats.driversPendingSettlement?.toLocaleString()} د.ل</td>
+              <td dir="ltr" style={{ width: '150px' }}>{Number(stats.driversPendingSettlement || 0).toLocaleString()} د.ل</td>
             </tr>
             <tr>
               <td>ما على الشركة (ديون ومستحقات لصالح المتاجر والتجار)</td>
-              <td dir="ltr">{stats.totalMerchantBalance?.toLocaleString()} د.ل</td>
+              <td dir="ltr">{Number(stats.totalMerchantBalance || 0).toLocaleString()} د.ل</td>
             </tr>
           </tbody>
         </table>

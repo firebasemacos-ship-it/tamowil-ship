@@ -180,7 +180,7 @@ export default function TicketsList() {
                 >
                   <div className="flex justify-between text-[10px]" style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)' }}>
                     <span className="font-bold">{activeTicket.userStore}</span>
-                    <span>{activeTicket.timestamp.toLocaleString()}</span>
+                    <span>{activeTicket.timestamp ? new Date(activeTicket.timestamp).toLocaleString('ar-LY') : ''}</span>
                   </div>
                   <p className="text-xs" style={{ color: 'var(--text-primary)', lineHeight: '1.6' }}>
                     {activeTicket.details}
@@ -201,7 +201,7 @@ export default function TicketsList() {
                   >
                     <div className="flex justify-between text-[10px]" style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)' }}>
                       <span className="font-bold" style={{ color: reply.sender.includes('Admin') ? 'var(--primary-color)' : 'var(--text-secondary)' }}>{reply.sender}</span>
-                      <span>{reply.timestamp.toLocaleString()}</span>
+                      <span>{reply.timestamp ? new Date(reply.timestamp).toLocaleString('ar-LY') : ''}</span>
                     </div>
                     <p className="text-xs" style={{ color: 'var(--text-primary)', lineHeight: '1.6' }}>
                       {reply.text}

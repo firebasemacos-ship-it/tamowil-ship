@@ -61,15 +61,15 @@ export default function MerchantsList() {
           <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', borderTop: '1px solid var(--card-border)', paddingTop: '20px' }}>
             <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(16,185,129,0.05)', flex: 1, minWidth: '150px' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{isAr ? 'الرصيد المتاح' : 'Available Balance'}</div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#10B981' }} dir="ltr">{merchant.walletBalance.toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#10B981' }} dir="ltr">{Number(merchant.walletBalance || 0).toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</div>
             </div>
             <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(99,102,241,0.05)', flex: 1, minWidth: '150px' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{isAr ? 'إجمالي الأرباح' : 'Total Earned'}</div>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: '#6366F1' }} dir="ltr">{merchant.totalEarned.toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</div>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: '#6366F1' }} dir="ltr">{Number(merchant.totalEarned || 0).toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</div>
             </div>
             <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(239,68,68,0.05)', flex: 1, minWidth: '150px' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{isAr ? 'إجمالي المسحوبات' : 'Total Withdrawn'}</div>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: '#EF4444' }} dir="ltr">{merchant.totalWithdrawn.toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</div>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: '#EF4444' }} dir="ltr">{Number(merchant.totalWithdrawn || 0).toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</div>
             </div>
             <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(245,158,11,0.05)', flex: 1, minWidth: '150px' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{isAr ? 'عدد الشحنات' : 'Total Shipments'}</div>
@@ -98,8 +98,8 @@ export default function MerchantsList() {
             <div>رقم الهاتف: <span dir="ltr">{merchant.phone}</span></div>
           </div>
           <div className="print-meta-info" style={{ borderTop: '1px solid #ccc', paddingTop: '10px' }}>
-            <div>الرصيد المتاح: {merchant.walletBalance.toLocaleString()} د.ل</div>
-            <div>إجمالي المسحوبات: {merchant.totalWithdrawn.toLocaleString()} د.ل</div>
+            <div>الرصيد المتاح: {Number(merchant.walletBalance || 0).toLocaleString()} د.ل</div>
+            <div>إجمالي المسحوبات: {Number(merchant.totalWithdrawn || 0).toLocaleString()} د.ل</div>
           </div>
 
           <div style={{ marginTop: '30px', fontWeight: 'bold', marginBottom: '10px' }}>ملخص الشحنات:</div>
@@ -113,7 +113,7 @@ export default function MerchantsList() {
             <tbody>
               <tr>
                 <td>{mShipments.length}</td>
-                <td dir="ltr">{merchant.totalEarned.toLocaleString()}</td>
+                <td dir="ltr">{Number(merchant.totalEarned || 0).toLocaleString()}</td>
               </tr>
             </tbody>
           </table>

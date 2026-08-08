@@ -76,7 +76,7 @@ export default function DriversManager() {
     settleDriver
   } = useApp();
   const isAr = lang === 'ar';
-  const fmt = v => `${Number(v).toLocaleString('ar-LY')} ${isAr ? 'د.ل' : 'LYD'}`;
+  const fmt = v => `${Number(v || 0).toLocaleString('ar-LY')} ${isAr ? 'د.ل' : 'LYD'}`;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setTab]           = useState('drivers'); // 'drivers' | 'settlement' | 'history'
@@ -244,7 +244,7 @@ export default function DriversManager() {
                     <td>
                       {(d.pendingSettlement || 0) > 0 ? (
                         <span style={{ fontWeight: 700, color: '#EF4444', fontSize: '12px' }} dir="ltr">
-                          {(d.pendingSettlement).toLocaleString()} {isAr ? 'د.ل' : 'LYD'}
+                          {Number(d.pendingSettlement || 0).toLocaleString()} {isAr ? 'د.ل' : 'LYD'}
                         </span>
                       ) : (
                         <span style={{ color: '#10B981', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -373,7 +373,7 @@ export default function DriversManager() {
                     ].map((stat, i) => (
                       <div key={i} style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginBottom: '3px', whiteSpace: 'nowrap' }}>{isAr ? stat.ar : stat.en}</div>
-                        <div style={{ fontSize: '14px', fontWeight: 800, color: stat.color }} dir="ltr">{stat.val.toLocaleString()} <span style={{ fontSize: '10px', fontWeight: 400 }}>{isAr ? 'د.ل' : 'LYD'}</span></div>
+                        <div style={{ fontSize: '14px', fontWeight: 800, color: stat.color }} dir="ltr">{Number(stat.val || 0).toLocaleString()} <span style={{ fontSize: '10px', fontWeight: 400 }}>{isAr ? 'د.ل' : 'LYD'}</span></div>
                       </div>
                     ))}
                   </div>
@@ -557,7 +557,7 @@ export default function DriversManager() {
               ].map((s, i) => (
                 <div key={i} style={{ padding: '12px 14px', borderRadius: '12px', background: 'rgba(128,128,128,0.06)', border: '1px solid var(--card-border)', gridColumn: i === 2 ? '1/-1' : 'auto' }}>
                   <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>{isAr ? s.ar : s.en}</div>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: s.color }} dir="ltr">{s.val.toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: s.color }} dir="ltr">{Number(s.val || 0).toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</div>
                 </div>
               ))}
             </div>
@@ -696,7 +696,7 @@ export default function DriversManager() {
                       <tr key={s.id}>
                         <td>{s.id}</td>
                         <td>{s.date.toLocaleDateString()} {s.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                        <td style={{ fontWeight: 800, color: '#10B981' }} dir="ltr">+{s.amount.toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</td>
+                        <td style={{ fontWeight: 800, color: '#10B981' }} dir="ltr">+{Number(s.amount || 0).toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</td>
                         <td style={{ color: 'var(--text-secondary)' }}>{s.note || '—'}</td>
                       </tr>
                     ))}
@@ -753,7 +753,7 @@ export default function DriversManager() {
                   <tr key={s.id}>
                     <td>{s.id}</td>
                     <td>{s.date.toLocaleDateString()} {s.date.toLocaleTimeString()}</td>
-                    <td dir="ltr" style={{ fontWeight: 'bold' }}>+{s.amount.toLocaleString()} د.ل</td>
+                    <td dir="ltr" style={{ fontWeight: 'bold' }}>+{Number(s.amount || 0).toLocaleString()} د.ل</td>
                     <td>{s.note || '—'}</td>
                   </tr>
                 ))}
@@ -815,7 +815,7 @@ export default function DriversManager() {
                     <td>{s.id}</td>
                     <td>{s.driverName}</td>
                     <td>{s.date.toLocaleDateString()}</td>
-                    <td dir="ltr" style={{ fontWeight: 'bold' }}>{s.amount.toLocaleString()} د.ل</td>
+                    <td dir="ltr" style={{ fontWeight: 'bold' }}>{Number(s.amount || 0).toLocaleString()} د.ل</td>
                     <td>{s.note || '—'}</td>
                   </tr>
                 ))}
