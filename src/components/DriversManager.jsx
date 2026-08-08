@@ -565,7 +565,7 @@ export default function DriversManager() {
             <form onSubmit={handleSettle} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  {isAr ? 'الخزينة المستلمة' : 'Receiving Safe'}
+                  {isAr ? 'الخزينة المستلمة للسيولة (يتم التوريد إليها وتفريغ خزينة العُهد)' : 'Target Receiving Safe (Transferred from Driver Custody)'}
                 </label>
                 <select className="glass-input w-full" value={settleForm.safeId || 'SAFE-001'} onChange={e => setSettleForm(p => ({ ...p, safeId: e.target.value }))}>
                   {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name} ({s.branch}) - رصيد: {s.balance} د.ل</option>)}
