@@ -404,6 +404,28 @@ export default function WalletManager() {
                       color: m.verified ? '#10B981' : '#EF4444' }}>
                       {m.verified ? (isAr ? 'موثّق' : 'Verified') : (isAr ? 'غير موثّق' : 'Unverified')}
                     </span>
+                    {/* Instant Settle Wallet Button */}
+                    {m.walletBalance > 0 && (
+                      <button onClick={(e) => {
+                        e.stopPropagation();
+                        setManualForm({
+                          merchantId: m.id,
+                          amount: String(m.walletBalance),
+                          type: 'debit',
+                          description: `تسوية وصرف أرصدة التاجر (${m.storeName})`,
+                          safeId: 'SAFE-001'
+                        });
+                        setShowManual(true);
+                      }} style={{
+                        padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                        fontSize: '11px', fontWeight: 700,
+                        background: 'linear-gradient(135deg, #10B981, #059669)', color: '#fff',
+                        boxShadow: '0 2px 10px rgba(16,185,129,0.35)',
+                        display: 'flex', alignItems: 'center', gap: '5px'
+                      }}>
+                        {Icon.check} {isAr ? 'تسوية مريحة' : 'Settle Wallet'}
+                      </button>
+                    )}
                     {/* Print Button */}
                     <button onClick={(e) => { e.stopPropagation(); setSelectedMerchant(m); handlePrint('wallet'); }} style={{ padding: '6px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, background: '#6366F1', color: '#fff' }}>
                       <span style={{display: 'flex', gap: '4px', alignItems: 'center'}}><svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>
