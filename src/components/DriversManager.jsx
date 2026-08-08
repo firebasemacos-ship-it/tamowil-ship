@@ -380,7 +380,7 @@ export default function DriversManager() {
 
                   {/* Settle button */}
                   <button
-                    onClick={() => { setSettleModal(d); setSettleForm({ amount: d.pendingSettlement || '', note: '' }); }}
+                    onClick={() => { setSettleModal(d); setSettleForm({ amount: d.pendingSettlement || '', note: '', safeId: 'SAFE-001' }); }}
                     disabled={!hasPending}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '8px',
@@ -567,8 +567,8 @@ export default function DriversManager() {
                 <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                   {isAr ? 'الخزينة المستلمة' : 'Receiving Safe'}
                 </label>
-                <select className="glass-input w-full" value={settleForm.safeId} onChange={e => setSettleForm(p => ({ ...p, safeId: e.target.value }))}>
-                  {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name} ({s.branch})</option>)}
+                <select className="glass-input w-full" value={settleForm.safeId || 'SAFE-001'} onChange={e => setSettleForm(p => ({ ...p, safeId: e.target.value }))}>
+                  {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name} ({s.branch}) - رصيد: {s.balance} د.ل</option>)}
                 </select>
               </div>
               <div>
