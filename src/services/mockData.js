@@ -340,10 +340,15 @@ export async function getUsers() {
     const totalEarnedFromShipments = mShipments.reduce((sum, s) => {
       const price = Number(s.price || 0);
       const deliveryFee = Number(s.delivery_fee || 0);
-      const prodPrice = Number(s.product_price || 0);
-      const net = (s.delivery_charge_on === 'المرسل') ? price : (price > 0 ? (price - deliveryFee) : prodPrice);
-      return sum + net;
+      const codFee = Number(s.cod_fee || 0);
+      const prodPrice = Number(s.product_price || 0) > 0 ? Number(s.product_price) : Math.max(0, price - deliveryFee - codFee);
+      if (s.delivery_charge_on === 'المرسل') {
+        return sum + Math.max(0, prodPrice - deliveryFee - codFee);
+      } else {
+        return sum + prodPrice;
+      }
     }, 0);
+
     const totalWithdrawnFromPayouts = mApprovedPayouts.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
     // Only count manual credit/debit transactions that are NOT already recorded as shipment COD or payout withdrawals
@@ -522,11 +527,11 @@ export async function manualCredit(merchantId, amount, description, type = 'cred
   const safes = await getSafes();
   const safeObj = safes.find(s => s.id === safeId);
 
-  // Validate safe balance for safe operations
-  if (safeId) {
+  // Validate safe balance ONLY when cash is leaving the safe to fund merchant wallet (credit)
+  if (safeId && type === 'credit') {
     const currentSafeBal = Number(safeObj?.balance || 0);
     if (currentSafeBal < amtVal) {
-      throw new Error(`رصيد الخزينة المحددة (${safeObj?.name || safeId}) غير كافٍ لإتمام العملية. الرصيد المتاح: ${currentSafeBal} د.ل - المطلوب: ${amtVal} د.ل`);
+      throw new Error(`رصيد الخزينة المحددة (${safeObj?.name || safeId}) غير كافٍ لصرف المبلغ. الرصيد المتاح: ${currentSafeBal} د.ل - المطلوب: ${amtVal} د.ل`);
     }
   }
 
@@ -543,13 +548,19 @@ export async function manualCredit(merchantId, amount, description, type = 'cred
   });
 
   if (safeId) {
-    // Both merchant credit and merchant debit settlement withdraw cash from the Safe!
+    // When deducting/settling merchant wallet (debit): Cash enters safe -> deposit (+) into safe
+    // When adding credit to merchant wallet (credit): Cash leaves safe -> withdrawal (-) from safe
+    const safeTxType = type === 'debit' ? 'deposit' : 'withdrawal';
+    const safeTxDesc = type === 'debit'
+      ? `استلام وتسوية نقدية من التاجر إلى الخزينة (${description || defaultDesc})`
+      : `صرف وإيداع رصيد مالي للتاجر من الخزينة (${description || defaultDesc})`;
+
     await recordSafeTransaction({
       safeId: safeId,
-      type: 'withdrawal',
+      type: safeTxType,
       amount: amtVal,
-      description: `تسوية يدوي لمجموع المحفظة (${description || defaultDesc})`,
-      ref: 'MANUAL'
+      description: safeTxDesc,
+      ref: 'MANUAL_SETTLEMENT'
     });
   }
 
