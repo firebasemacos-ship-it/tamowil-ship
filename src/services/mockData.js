@@ -278,7 +278,7 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
           .single();
 
         if (drv) {
-          const driverOwes = (sh.delivery_charge_on === 'المرسل') ? Number(sh.price || 0) : (Number(sh.price || 0) - Number(sh.delivery_fee || 0));
+          const driverOwes = (sh.delivery_charge_on === 'المرسل') ? Number(sh.product_price || sh.price || 0) : Number(sh.price || 0);
           const newCollected = Number(drv.cod_collected || 0) + driverOwes;
           const newPending = Number(drv.pending_settlement || 0) + driverOwes;
           await supabase
@@ -607,8 +607,8 @@ export async function getDrivers() {
     // Dynamic Single Source of Truth calculation for driver custody
     const totalCollectedFromShipments = deliveredShipments.reduce((sum, s) => {
       const price = Number(s.price || 0);
-      const fee = Number(s.delivery_fee || 0);
-      const driverOwes = (s.delivery_charge_on === 'المرسل') ? price : (price - fee);
+      const prodPrice = Number(s.product_price || price);
+      const driverOwes = (s.delivery_charge_on === 'المرسل') ? prodPrice : price;
       return sum + Math.max(0, driverOwes);
     }, 0);
 
