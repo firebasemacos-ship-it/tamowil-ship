@@ -520,27 +520,32 @@ export async function getTransactionLog() {
   }));
 }
 
-export async function manualCredit(merchantId, amount, description, type = 'credit', safeId = 'SAFE-001') {
+export async function manualCredit(merchantId, amount, description, type = 'payout', safeId = 'SAFE-001') {
   const amtVal = Math.abs(Number(amount || 0));
   if (amtVal <= 0) throw new Error('المبلغ يجب أن يكون أكبر من صفر');
 
   const safes = await getSafes();
   const safeObj = safes.find(s => s.id === safeId);
 
-  // Validate safe balance ONLY when cash is leaving the safe to fund merchant wallet (credit)
-  if (safeId && type === 'credit') {
+  // Validate safe balance when paying out cash from the safe to the merchant (payout / credit)
+  const isCashLeavingSafe = (type === 'payout' || type === 'credit');
+  if (safeId && isCashLeavingSafe) {
     const currentSafeBal = Number(safeObj?.balance || 0);
     if (currentSafeBal < amtVal) {
-      throw new Error(`رصيد الخزينة المحددة (${safeObj?.name || safeId}) غير كافٍ لصرف المبلغ. الرصيد المتاح: ${currentSafeBal} د.ل - المطلوب: ${amtVal} د.ل`);
+      throw new Error(`رصيد الخزينة المحددة (${safeObj?.name || safeId}) غير كافٍ لصرف المبلغ للتاجر. الرصيد المتاح: ${currentSafeBal} د.ل - المطلوب: ${amtVal} د.ل`);
     }
   }
 
-  const transactionAmt = type === 'debit' ? -amtVal : amtVal;
-  const defaultDesc = type === 'debit' ? 'تسوية / خصم يدوي من المحفظة' : 'إيداع يدوي في المحفظة';
+  const isMerchantBalanceIncrease = (type === 'credit');
+  const transactionAmt = isMerchantBalanceIncrease ? amtVal : -amtVal;
+
+  let defaultDesc = 'تسوية وصرف أرباح التاجر';
+  if (type === 'credit') defaultDesc = 'إيداع / شحن يدوي في المحفظة';
+  if (type === 'debit') defaultDesc = 'تحصيل وتخصيص نقدي من المحفظة';
 
   await supabase.from('transactions').insert({
     id: `TXN-${Date.now()}`,
-    type: type === 'debit' ? 'debit' : 'credit',
+    type: isMerchantBalanceIncrease ? 'credit' : 'debit',
     type_ar: description || defaultDesc,
     amount: transactionAmt,
     reference: 'MANUAL_SETTLEMENT',
@@ -548,12 +553,13 @@ export async function manualCredit(merchantId, amount, description, type = 'cred
   });
 
   if (safeId) {
-    // When deducting/settling merchant wallet (debit): Cash enters safe -> deposit (+) into safe
-    // When adding credit to merchant wallet (credit): Cash leaves safe -> withdrawal (-) from safe
-    const safeTxType = type === 'debit' ? 'deposit' : 'withdrawal';
-    const safeTxDesc = type === 'debit'
-      ? `استلام وتسوية نقدية من التاجر إلى الخزينة (${description || defaultDesc})`
-      : `صرف وإيداع رصيد مالي للتاجر من الخزينة (${description || defaultDesc})`;
+    // payout: Cash leaves safe to merchant -> withdrawal (-) from safe
+    // credit: Cash leaves safe to merchant wallet -> withdrawal (-) from safe
+    // debit: Cash collected from merchant into safe -> deposit (+) into safe
+    const safeTxType = (type === 'payout' || type === 'credit') ? 'withdrawal' : 'deposit';
+    const safeTxDesc = (type === 'payout' || type === 'credit')
+      ? `صرف وتسوية أرباح التاجر نقداً من الخزينة (${description || defaultDesc})`
+      : `استلام وتحصيل نقدي من التاجر إلى الخزينة (${description || defaultDesc})`;
 
     await recordSafeTransaction({
       safeId: safeId,

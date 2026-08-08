@@ -411,7 +411,7 @@ export default function WalletManager() {
                         setManualForm({
                           merchantId: m.id,
                           amount: String(m.walletBalance),
-                          type: 'debit',
+                          type: 'payout',
                           description: `تسوية وصرف أرصدة التاجر (${m.storeName})`,
                           safeId: 'SAFE-001'
                         });
@@ -605,8 +605,9 @@ export default function WalletManager() {
                   {isAr ? 'نوع التسوية' : 'Settlement Type'}
                 </label>
                 <select className="glass-input" value={manualForm.type} onChange={e => setManualForm(p => ({ ...p, type: e.target.value }))}>
-                  <option value="credit">{isAr ? '+ إيداع / شحن رصيد للمحفظة (+)' : '+ Credit Deposit (+)'}</option>
-                  <option value="debit">{isAr ? '- خصم / تسوية رصيد من المحفظة (-)' : '- Debit Settlement (-)'}</option>
+                  <option value="payout">{isAr ? '💸 تسوية وصرف أرباح التاجر (صرف نقدي من الخزينة للتاجر)' : '💸 Merchant Payout (Cash Out from Safe)'}</option>
+                  <option value="credit">{isAr ? '➕ إيداع / شحن رصيد للمحفظة' : '➕ Credit Deposit'}</option>
+                  <option value="debit">{isAr ? '📥 خصم / تحصيل نقدي من التاجر إلى الخزينة' : '📥 Debit Cash Collection (Deposit to Safe)'}</option>
                 </select>
               </div>
               <div>
