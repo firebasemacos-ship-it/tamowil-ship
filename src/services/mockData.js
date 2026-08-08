@@ -543,12 +543,14 @@ export async function manualCredit(merchantId, amount, description, type = 'payo
   if (type === 'credit') defaultDesc = 'إيداع / شحن يدوي في المحفظة';
   if (type === 'debit') defaultDesc = 'تحصيل وتخصيص نقدي من المحفظة';
 
+  const txId = `TXN-${Date.now()}`;
+
   await supabase.from('transactions').insert({
-    id: `TXN-${Date.now()}`,
+    id: txId,
     type: isMerchantBalanceIncrease ? 'credit' : 'debit',
     type_ar: description || defaultDesc,
     amount: transactionAmt,
-    reference: 'MANUAL_SETTLEMENT',
+    reference: txId,
     merchant_id: merchantId
   });
 
@@ -566,7 +568,7 @@ export async function manualCredit(merchantId, amount, description, type = 'payo
       type: safeTxType,
       amount: amtVal,
       description: safeTxDesc,
-      ref: 'MANUAL_SETTLEMENT'
+      ref: txId
     });
   }
 
@@ -979,11 +981,11 @@ export async function getSafeTransactions() {
     console.warn('Fetch transactions backup error:', err);
   }
 
-  // Deduplicate safe transactions by safeId + ref + type
+  // Deduplicate safe transactions by unique ID or safeId + ref + type
   const uniqueTxs = [];
   const seenKeys = new Set();
   for (const t of txs) {
-    const key = `${t.safeId}_${t.ref}_${t.type}`;
+    const key = t.id ? t.id : `${t.safeId}_${t.ref}_${t.type}`;
     if (!seenKeys.has(key)) {
       seenKeys.add(key);
       uniqueTxs.push(t);
