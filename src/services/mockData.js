@@ -695,23 +695,43 @@ export async function settleDriver(driverId, amount, note, safeId = 'SAFE-001') 
     });
 
     // 1. Deduct settled amount from Drivers Custody Safe (SAFE-005)
+    const stlRef = `STL-${Date.now()}`;
     await recordSafeTransaction({
       safeId: 'SAFE-005',
       type: 'withdrawal',
       amount: amountVal,
       description: `تفريغ عُهدة نقدية وتصفية حساب مع السائق (${d.name})`,
-      ref: `STL-${Date.now()}`
+      ref: stlRef
     });
 
-    // 2. Deposit settled amount into Target Main/Branch Safe
+    // 2. Calculate driver delivery fees earned (e.g. 7 LYD per 500 LYD COD)
+    const { data: dShipments } = await supabase
+      .from('shipments')
+      .select('delivery_fee, price')
+      .eq('assigned_driver_id', driverId)
+      .in('status', ['Delivered', 'تم التسليم']);
+
+    const driverTotalFee = (dShipments || []).reduce((sum, s) => sum + Number(s.delivery_fee || 0), 0);
+
+    // 3. Deposit settled amount into Target Main/Branch Safe and deduct driver commission
     if (safeId) {
       await recordSafeTransaction({
         safeId: safeId,
         type: 'deposit',
         amount: amountVal,
         description: `استلام تسوية عُهدة نقدية من السائق (${d.name})`,
-        ref: `STL-${Date.now()}`
+        ref: stlRef
       });
+
+      if (driverTotalFee > 0) {
+        await recordSafeTransaction({
+          safeId: safeId,
+          type: 'withdrawal',
+          amount: driverTotalFee,
+          description: `صرف عمولة وسعر توصيل السائق (${d.name})`,
+          ref: stlRef
+        });
+      }
     }
   }
   return getDrivers();
