@@ -154,7 +154,7 @@ export default function WalletManager() {
       setManualForm({ merchantId: '', amount: '', type: 'credit', description: '', safeId: 'SAFE-001' });
       setShowManual(false);
     } catch (err) {
-      alert(err.message || 'حدث خطأ أثناء إجراء التسوية');
+      setManualError(err.message || (isAr ? 'حدث خطأ أثناء إجراء التسوية - يرجى التأكد من رصيد الخزينة' : 'Error performing settlement'));
     }
   }
 
