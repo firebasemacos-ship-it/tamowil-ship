@@ -1043,12 +1043,12 @@ export async function getSafes() {
         const alreadyRecorded = dbCheck && dbCheck.length > 0;
         if (!alreadyRecorded) {
           const netCustodyAmt = (sh.delivery_charge_on === 'المرسل')
-            ? Number(sh.price || 0)
-            : Math.max(0, (Number(sh.price || 0) > 0 ? Number(sh.price) - Number(sh.delivery_fee || 0) : Number(sh.product_price || 0)));
+            ? Number(sh.product_price || sh.price || 0)
+            : Number(sh.price || (Number(sh.product_price || 0) + Number(sh.delivery_fee || 0) + Number(sh.cod_fee || 0)));
 
           if (netCustodyAmt > 0) {
             const txId = `STX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-            const desc = `عُهدة ميدانية مع السائق (صافي البضاعة بدون أجرة التوصيل) - (${trk})`;
+            const desc = `عُهدة نقدية ميدانية مع السائق - شحنة (${trk})`;
             
             await supabase.from('safe_transactions').insert({
               id: txId,
