@@ -614,8 +614,10 @@ export async function getDrivers() {
     const totalCollectedFromShipments = deliveredShipments.reduce((sum, s) => {
       const price = Number(s.price || 0);
       const prodPrice = Number(s.product_price || price);
-      const driverOwes = isSenderPaid(s.delivery_charge_on) ? prodPrice : price;
-      return sum + Math.max(0, driverOwes);
+      const deliveryFee = Number(s.delivery_fee || 0);
+      const cashCollected = isSenderPaid(s.delivery_charge_on) ? prodPrice : price;
+      const driverOwes = Math.max(0, cashCollected - deliveryFee);
+      return sum + driverOwes;
     }, 0);
 
     const dSettlements = (settlements || []).filter(st => st.driver_id === d.id && (st.status === 'Settled' || !st.status));
@@ -704,16 +706,7 @@ export async function settleDriver(driverId, amount, note, safeId = 'SAFE-001') 
       ref: stlRef
     });
 
-    // 2. Calculate driver delivery fees earned (e.g. 7 LYD per 500 LYD COD)
-    const { data: dShipments } = await supabase
-      .from('shipments')
-      .select('delivery_fee, price')
-      .eq('assigned_driver_id', driverId)
-      .in('status', ['Delivered', 'تم التسليم']);
-
-    const driverTotalFee = (dShipments || []).reduce((sum, s) => sum + Number(s.delivery_fee || 0), 0);
-
-    // 3. Deposit settled amount into Target Main/Branch Safe and deduct driver commission
+    // 2. Deposit net settled amount into Target Main/Branch Safe
     if (safeId) {
       await recordSafeTransaction({
         safeId: safeId,
@@ -722,16 +715,6 @@ export async function settleDriver(driverId, amount, note, safeId = 'SAFE-001') 
         description: `استلام تسوية عُهدة نقدية من السائق (${d.name})`,
         ref: stlRef
       });
-
-      if (driverTotalFee > 0) {
-        await recordSafeTransaction({
-          safeId: safeId,
-          type: 'withdrawal',
-          amount: driverTotalFee,
-          description: `صرف عمولة وسعر توصيل السائق (${d.name})`,
-          ref: stlRef
-        });
-      }
     }
   }
   return getDrivers();
@@ -1068,9 +1051,11 @@ export async function getSafes() {
 
         const alreadyRecorded = dbCheck && dbCheck.length > 0;
         if (!alreadyRecorded) {
-          const netCustodyAmt = isSenderPaid(sh.delivery_charge_on)
+          const rawCashCollected = isSenderPaid(sh.delivery_charge_on)
             ? Number(sh.product_price || sh.price || 0)
             : Number(sh.price || (Number(sh.product_price || 0) + Number(sh.delivery_fee || 0) + Number(sh.cod_fee || 0)));
+          const delFee = Number(sh.delivery_fee || 0);
+          const netCustodyAmt = Math.max(0, rawCashCollected - delFee);
 
           if (netCustodyAmt > 0) {
             const txId = `STX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
