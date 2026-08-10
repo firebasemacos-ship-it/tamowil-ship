@@ -44,6 +44,10 @@ const NAV_ITEMS = [
     id: 9, perm: 'employees', ar: 'إدارة الموظفين', en: 'Employees',
     icon: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg>,
   },
+  {
+    id: 10, ar: 'سجل حركات النظام (Log)', en: 'System Logs',
+    icon: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 17l6-6-6-6M12 19h8"/></svg>,
+  },
 ];
 
 

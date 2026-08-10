@@ -13,6 +13,7 @@ import DriversManager from '@/components/DriversManager';
 import PricingManager from '@/components/PricingManager';
 import ReportsView    from '@/components/ReportsView';
 import SafesManager  from '@/components/SafesManager';
+import SystemLogView from '@/components/SystemLogView';
 import GlobalDateFilter from '@/components/GlobalDateFilter';
 
 export default function AdminPage() {
@@ -90,6 +91,7 @@ export default function AdminPage() {
     <ReportsView />,
     <SafesManager />,
     <EmployeesManager />,
+    <SystemLogView />
   ];
 
   return (
