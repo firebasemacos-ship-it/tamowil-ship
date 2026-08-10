@@ -201,13 +201,34 @@ export async function deleteShipment(trackingNumber) {
   return getShipments();
 }
 
-export async function updateShipmentStatus(trackingNumber, newStatus, location, detailsAr, detailsEn) {
-  const { error } = await supabase
-    .from('shipments')
-    .update({ status: newStatus })
-    .eq('tracking_number', trackingNumber);
+const inFlightStatusUpdates = new Set();
 
-  if (error) console.error('updateShipmentStatus error:', error);
+export async function updateShipmentStatus(trackingNumber, newStatus, location, detailsAr, detailsEn) {
+  const lockKey = `${trackingNumber}_${newStatus}`;
+  if (inFlightStatusUpdates.has(lockKey)) {
+    console.warn(`Ignored duplicate status update request for ${lockKey}`);
+    return getShipments();
+  }
+  inFlightStatusUpdates.add(lockKey);
+
+  try {
+    const { data: existingSh } = await supabase
+      .from('shipments')
+      .select('status')
+      .eq('tracking_number', trackingNumber)
+      .maybeSingle();
+
+    if (existingSh && (existingSh.status === newStatus || ((newStatus === 'Delivered' || newStatus === 'تم التسليم') && (existingSh.status === 'Delivered' || existingSh.status === 'تم التسليم')))) {
+      console.warn(`Shipment ${trackingNumber} is already in status ${existingSh.status}, ignoring duplicate update.`);
+      return getShipments();
+    }
+
+    const { error } = await supabase
+      .from('shipments')
+      .update({ status: newStatus })
+      .eq('tracking_number', trackingNumber);
+
+    if (error) console.error('updateShipmentStatus error:', error);
 
   let defaultAr = `تم تحديث حالة الشحنة إلى ${newStatus}`;
   if (newStatus === 'In Warehouse' || newStatus === 'تم الاستلام') {
@@ -293,10 +314,13 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
             .eq('id', sh.assigned_driver_id);
         }
       }
+      }
     }
-  }
 
-  return getShipments();
+    return getShipments();
+  } finally {
+    inFlightStatusUpdates.delete(lockKey);
+  }
 }
 
 export async function assignDriverToShipment(trackingNumber, driverId) {
