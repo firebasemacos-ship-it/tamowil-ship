@@ -54,20 +54,21 @@ export default function SystemLogView() {
     // 2. Shipment History & Events
     (shipments || []).forEach(s => {
       (s.history || []).forEach(h => {
+        const hStatus = h.status || h.status_name || h.detailsAr || s.status;
         logs.push({
           id: `SHIP-LOG-${h.id || Math.random()}`,
           timestamp: h.timestamp ? new Date(h.timestamp) : new Date(),
           category: 'SHIPMENT',
-          level: h.status === 'تم التسليم' ? 'SUCCESS' : h.status === 'ملغاة' || h.status === 'راجع' ? 'WARN' : 'INFO',
-          titleAr: `تحديث شحنة #${s.trackingNumber}: حالة [${h.status}]`,
-          titleEn: `Shipment #${s.trackingNumber}: Status [${h.status}]`,
+          level: hStatus === 'تم التسليم' ? 'SUCCESS' : hStatus === 'ملغاة' || hStatus === 'راجع' ? 'WARN' : 'INFO',
+          titleAr: `تحديث شحنة #${s.trackingNumber}: حالة [${hStatus}]`,
+          titleEn: `Shipment #${s.trackingNumber}: Status [${hStatus}]`,
           actor: h.location || 'نظام التتبع',
           reference: s.trackingNumber,
           details: {
             trackingNumber: s.trackingNumber,
             merchantId: s.merchantId,
             merchantName: s.merchantName,
-            status: h.status,
+            status: hStatus,
             receiverCity: s.receiverCity,
             receiverName: s.receiverName,
             price: s.price,
