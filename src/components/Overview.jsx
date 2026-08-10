@@ -1,10 +1,24 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 export default function Overview() {
-  const { lang, dashboardStats: stats, shipmentsList: shipments } = useApp();
+  const { lang, dashboardStats: stats, shipmentsList: shipments, resetSystemData } = useApp();
   const isAr = lang === 'ar';
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  async function handleConfirmReset() {
+    setIsResetting(true);
+    try {
+      await resetSystemData();
+      setShowResetModal(false);
+    } catch (err) {
+      alert(err.message || 'حدث خطأ أثناء تصفير النظام');
+    } finally {
+      setIsResetting(false);
+    }
+  }
 
   const allLogs = shipments
     .flatMap(s => s.history.map(h => ({ ...h, trackingNumber: s.trackingNumber })))
@@ -20,13 +34,13 @@ export default function Overview() {
 
   const statCards = [
     {
-      titleAr: 'إجمالي الشحنات',
-      titleEn: 'Total Shipments',
+      titleAr: 'إجمالي الشحنات النَشطة',
+      titleEn: 'Total Active Shipments',
       value: stats.total,
       subAr: 'شحنة مسجلة بالنظام',
-      subEn: 'registered in system',
-      color: '#818CF8',
-      shadowRgb: '129, 140, 248',
+      subEn: 'registered shipments',
+      color: '#6366F1',
+      shadowRgb: '99, 102, 241',
       icon: (
         <svg width="22" height="22" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
@@ -34,16 +48,16 @@ export default function Overview() {
       ),
     },
     {
-      titleAr: 'الشحنات المسلَّمة',
-      titleEn: 'Delivered',
+      titleAr: 'شحنات مكتملة (تم التسليم)',
+      titleEn: 'Completed Deliveries',
       value: stats.delivered,
-      subAr: `نسبة نجاح ${deliveredPct}%`,
-      subEn: `${deliveredPct}% success rate`,
+      subAr: 'تم التسليم والتحصيل',
+      subEn: 'successfully delivered',
       color: '#10B981',
       shadowRgb: '16, 185, 129',
       icon: (
         <svg width="22" height="22" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          <polyline points="20 6 9 17 4 12"/>
         </svg>
       ),
     },
@@ -88,15 +102,33 @@ export default function Overview() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
       {/* ── Header ── */}
-      <div>
-        <h1 className="title-large">
-          {isAr ? 'أهلاً بك، مدير النظام' : 'Welcome back, Administrator'}
-        </h1>
-        <p className="subtitle">
-          {isAr
-            ? 'مراقبة وإدارة أداء الشحن، تحصيل الأموال وتذاكر الدعم الفني بشكل مباشر.'
-            : 'Monitor shipping performance, cash collections, and support tickets live.'}
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <h1 className="title-large">
+            {isAr ? 'أهلاً بك، مدير النظام' : 'Welcome back, Administrator'}
+          </h1>
+          <p className="subtitle">
+            {isAr
+              ? 'مراقبة وإدارة أداء الشحن، تحصيل الأموال وتذاكر الدعم الفني بشكل مباشر.'
+              : 'Monitor shipping performance, cash collections, and support tickets live.'}
+          </p>
+        </div>
+
+        <button
+          onClick={() => setShowResetModal(true)}
+          style={{
+            padding: '12px 22px', borderRadius: '14px', border: '1px solid rgba(239,68,68,0.4)',
+            background: 'linear-gradient(135deg, rgba(239,68,68,0.18), rgba(220,38,38,0.08))',
+            color: '#EF4444', fontWeight: 800, fontSize: '13px', cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', gap: '8px',
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
+          </svg>
+          {isAr ? 'إعادة تعيين وتصفير النظام' : 'Reset System & Safes'}
+        </button>
       </div>
 
       {/* ── Stat Cards Grid ── */}
@@ -187,6 +219,74 @@ export default function Overview() {
         </div>
 
       </div>
+
+      {/* ══ System Reset Confirmation Modal ══ */}
+      {showResetModal && (
+        <div className="modal-overlay" onClick={() => !isResetting && setShowResetModal(false)}>
+          <div className="modal-content glass-panel" style={{ padding: '32px', maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
+              <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', flexShrink: 0 }}>
+                <svg width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ fontWeight: 900, fontSize: '17px', color: '#EF4444', margin: 0 }}>
+                  {isAr ? 'تأكيد تصفير وإعادة تعيين النظام' : 'Confirm System Reset'}
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>
+                  {isAr ? 'حذف المعاملات وتصفير الخزائن مع الحفاظ على الحسابات' : 'Purge transactions and zero safes while retaining accounts'}
+                </p>
+              </div>
+            </div>
+
+            <div style={{
+              padding: '16px 18px', borderRadius: '14px', background: 'rgba(239,68,68,0.08)',
+              border: '1px solid rgba(239,68,68,0.25)', marginBottom: '24px', fontSize: '13px',
+              color: 'var(--text-primary)', lineHeight: 1.6
+            }}>
+              {isAr ? (
+                <>
+                  ⚠️ <b>تنبيه هام جداً:</b> سيتم حذف جميع الشحنات، المعاملات المالية، طلبات السحب، وتسويات المندوبين، وتصفير جميع الخزائن إلى <b>0.00 د.ل</b> بشكل نهائي.<br/>
+                  ✅ <b>الحسابات المحتفظ بها:</b> حسابات المتاجر والمندوبين والموظفين ستبقى مسجلة ونشطة في النظام.
+                </>
+              ) : (
+                <>
+                  ⚠️ <b>WARNING:</b> This will permanently delete all shipments, transactions, payouts, and driver settlements, and zero out all safes to <b>0.00 LYD</b>.<br/>
+                  ✅ <b>Retained Data:</b> Merchant, driver, and employee accounts will remain active.
+                </>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                disabled={isResetting}
+                onClick={() => setShowResetModal(false)}
+                style={{
+                  padding: '11px 22px', borderRadius: '12px', border: '1px solid var(--glass-border)',
+                  background: 'transparent', color: 'var(--text-secondary)', fontWeight: 700, cursor: 'pointer'
+                }}
+              >
+                {isAr ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                disabled={isResetting}
+                onClick={handleConfirmReset}
+                style={{
+                  padding: '11px 26px', borderRadius: '12px', border: 'none',
+                  background: 'linear-gradient(135deg, #EF4444, #DC2626)', color: '#fff',
+                  fontWeight: 800, cursor: isResetting ? 'wait' : 'pointer', fontSize: '13px',
+                  boxShadow: '0 4px 16px rgba(239,68,68,0.4)', opacity: isResetting ? 0.7 : 1
+                }}
+              >
+                {isResetting ? (isAr ? 'جاري التصفير...' : 'Resetting...') : (isAr ? 'تأكيد تصفير النظام الآن' : 'Confirm Reset Now')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

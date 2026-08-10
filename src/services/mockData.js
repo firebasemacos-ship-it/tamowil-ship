@@ -1279,3 +1279,16 @@ export async function transferBetweenSafes(fromSafeId, toSafeId, amount, note) {
 
   return getSafes();
 }
+
+export async function resetSystemData() {
+  await supabase.from('shipment_history').delete().neq('id', '0');
+  await supabase.from('shipments').delete().neq('id', '0');
+  await supabase.from('transactions').delete().neq('id', '0');
+  await supabase.from('payout_requests').delete().neq('id', '0');
+  await supabase.from('driver_settlements').delete().neq('id', '0');
+  await supabase.from('safe_transactions').delete().neq('id', '0');
+  await supabase.from('safes').update({ balance: 0 }).neq('id', '0');
+  await supabase.from('drivers').update({ cod_collected: 0, cod_settled: 0, pending_settlement: 0 }).neq('id', '0');
+  return getInitialData();
+}
+

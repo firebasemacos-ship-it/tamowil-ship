@@ -382,6 +382,7 @@ export function AppProvider({ children }) {
       deleteSafe: wrapAction(db.deleteSafe),
       recordSafeTransaction: wrapAction(db.recordSafeTransaction),
       transferBetweenSafes: wrapAction(db.transferBetweenSafes),
+      resetSystemData: wrapAction(db.resetSystemData),
       updateTicketStatus: wrapAction(db.updateTicketStatus),
       addTicketReply: wrapAction(db.addTicketReply)
     }}>
