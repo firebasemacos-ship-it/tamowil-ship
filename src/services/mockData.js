@@ -1235,13 +1235,18 @@ export async function deleteCity(cityName) {
 // ─── Tickets ─────────────────────────────────────────────────
 
 export async function getTickets() {
-  const { data, error } = await supabase
-    .from('tickets')
-    .select('*, messages:ticket_messages(*), merchants(store_name)')
-    .order('created_at', { ascending: false });
+  const [meta, { data, error }] = await Promise.all([
+    getBranchMeta(),
+    supabase
+      .from('tickets')
+      .select('*, messages:ticket_messages(*), merchants(store_name)')
+      .order('created_at', { ascending: false })
+  ]);
   if (error) return [];
   return data.map(t => ({
     id: t.id,
+    merchantId: t.merchant_id,
+    branchId: meta.assignments?.merchants?.[t.merchant_id] || 'MAIN',
     userStore: t.merchants?.store_name || 'متجر غير معروف',
     subject: t.subject,
     subjectEn: t.subject_en,

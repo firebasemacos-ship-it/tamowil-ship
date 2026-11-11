@@ -363,12 +363,13 @@ export function AppProvider({ children }) {
   const scopedSafeIds = new Set(scopedSafes.map(s => s.id));
   const scopedSafeTransactions = safeTransactions.filter(tx => scopedSafeIds.has(tx.safeId));
   const scopedEmployees = employees.filter(e => matchesActiveBranch(e.branchId));
+  const scopedTickets = tickets.filter(t => matchesActiveBranch(t.branchId));
 
   const filteredShipments = scopedShipments.filter(s => isWithinFilter(s.created_at || s.createdAt || s.date));
   const filteredPayouts = scopedPayouts.filter(p => isWithinFilter(p.requested_at || p.requestedAt || p.date));
   const filteredTxLog = scopedTxLog.filter(tx => isWithinFilter(tx.date || tx.created_at));
   const filteredSettlements = scopedSettlements.filter(s => isWithinFilter(s.date || s.created_at));
-  const filteredTickets = tickets.filter(t => isWithinFilter(t.created_at || t.createdAt || t.date));
+  const filteredTickets = scopedTickets.filter(t => isWithinFilter(t.created_at || t.createdAt || t.date));
 
   // Compute stats dynamically based on scoped & filtered data
   const deliveredShipments = filteredShipments.filter(s => s.status === 'Delivered' || s.status === 'تم التسليم' || s.status === 'تم التوصيل');
