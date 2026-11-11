@@ -87,7 +87,12 @@ export default function DriversManager() {
   const [editModal, setEditModal]     = useState(null); // driver object
   const [driverProfileModal, setDriverProfileModal] = useState(null); // driver object
   const [driverProfileTab, setDriverProfileTab] = useState('shipments'); // 'shipments' | 'transactions'
-  const [settleForm, setSettleForm]   = useState({ amount: '', note: '', safeId: 'SAFE-001' });
+  const defaultSafeId = useMemo(() => {
+    const main = (safes || []).find(s => s.isMainSafe && !s.isCustodySafe) || (safes || []).find(s => !s.isCustodySafe) || safes?.[0];
+    return main?.id || 'SAFE-001';
+  }, [safes]);
+
+  const [settleForm, setSettleForm]   = useState({ amount: '', note: '', safeId: '' });
   const [expandDriver, setExpand]     = useState(null);
   const [form, setForm]               = useState({ name: '', phone: '', zone: '', password: '' });
 
@@ -132,9 +137,9 @@ export default function DriversManager() {
   function handleSettle(e) {
     e.preventDefault();
     if (!settleModal || !settleForm.amount) return;
-    settleDriver(settleModal.id, parseFloat(settleForm.amount), settleForm.note, settleForm.safeId || 'SAFE-001');
+    settleDriver(settleModal.id, parseFloat(settleForm.amount), settleForm.note, settleForm.safeId || defaultSafeId);
     setSettleModal(null);
-    setSettleForm({ amount: '', note: '', safeId: 'SAFE-001' });
+    setSettleForm({ amount: '', note: '', safeId: defaultSafeId });
   }
 
   function handlePrint() {
@@ -567,8 +572,8 @@ export default function DriversManager() {
                 <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                   {isAr ? 'الخزينة المستلمة للسيولة (يتم التوريد إليها وتفريغ خزينة العُهد)' : 'Target Receiving Safe (Transferred from Driver Custody)'}
                 </label>
-                <select className="glass-input w-full" value={settleForm.safeId || 'SAFE-001'} onChange={e => setSettleForm(p => ({ ...p, safeId: e.target.value }))}>
-                  {(safes || []).map(s => <option key={s.id} value={s.id}>{s.name} ({s.branch}) - رصيد: {s.balance} د.ل</option>)}
+                <select className="glass-input w-full" value={settleForm.safeId || defaultSafeId} onChange={e => setSettleForm(p => ({ ...p, safeId: e.target.value }))}>
+                  {(safes || []).filter(s => !s.isCustodySafe).map(s => <option key={s.id} value={s.id}>{s.name} ({s.branch}) - رصيد: {s.balance} د.ل</option>)}
                 </select>
               </div>
               <div>

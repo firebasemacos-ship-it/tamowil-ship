@@ -11,6 +11,318 @@ export function isSenderPaid(chargeOn) {
   return str === 'المرسل' || str === 'المتجر' || str === 'sender' || str === 'merchant';
 }
 
+// ─── Multi-Branch Isolation & Meta Sync Engine ────────────────
+const BRANCHES_STORAGE_KEY = 'vanex_branches_meta_v1';
+const META_SAFE_ID = 'SYS-BRANCHES-META';
+
+const DEFAULT_BRANCHES = [
+  {
+    id: 'BR-TRIPOLI',
+    name: 'فرع طرابلس',
+    code: 'TIP-01',
+    city: 'طرابلس',
+    address: 'طرابلس - المركز الميداني',
+    phone: '0910001111',
+    adminName: 'مدير فرع طرابلس',
+    adminPhone: 'tripoli',
+    adminPassword: '123',
+    mainSafeId: 'SAFE-002',
+    custodySafeId: 'SAFE-CUST-BR-TRIPOLI',
+    active: true,
+    permissions: ['overview', 'shipments', 'wallet', 'drivers', 'merchants', 'tickets', 'reports', 'safes', 'employees', 'logs'],
+    createdAt: '2026-08-01T00:00:00.000Z'
+  },
+  {
+    id: 'BR-BENGHAZI',
+    name: 'فرع بنغازي',
+    code: 'BEN-01',
+    city: 'بنغازي',
+    address: 'بنغازي - حي الفويهات',
+    phone: '0920002222',
+    adminName: 'مدير فرع بنغازي',
+    adminPhone: 'benghazi',
+    adminPassword: '123',
+    mainSafeId: 'SAFE-003',
+    custodySafeId: 'SAFE-CUST-BR-BENGHAZI',
+    active: true,
+    permissions: ['overview', 'shipments', 'wallet', 'drivers', 'merchants', 'tickets', 'reports', 'safes', 'employees', 'logs'],
+    createdAt: '2026-08-01T00:00:00.000Z'
+  }
+];
+
+const DEFAULT_META = {
+  branches: DEFAULT_BRANCHES,
+  assignments: {
+    merchants: {},
+    drivers: {},
+    shipments: {},
+    employees: {},
+    safes: {
+      'SAFE-001': 'MAIN',
+      'SAFE-005': 'MAIN',
+      'SAFE-004': 'MAIN',
+      'SAFE-002': 'BR-TRIPOLI',
+      'SAFE-CUST-BR-TRIPOLI': 'BR-TRIPOLI',
+      'SAFE-003': 'BR-BENGHAZI',
+      'SAFE-CUST-BR-BENGHAZI': 'BR-BENGHAZI'
+    }
+  }
+};
+
+let cachedBranchMeta = null;
+let lastMetaSyncTime = 0;
+
+export function getCachedBranchMeta() {
+  if (cachedBranchMeta) return cachedBranchMeta;
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(BRANCHES_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        cachedBranchMeta = {
+          branches: Array.isArray(parsed.branches) && parsed.branches.length > 0 ? parsed.branches : DEFAULT_BRANCHES,
+          assignments: {
+            merchants: { ...(parsed.assignments?.merchants || {}) },
+            drivers: { ...(parsed.assignments?.drivers || {}) },
+            shipments: { ...(parsed.assignments?.shipments || {}) },
+            employees: { ...(parsed.assignments?.employees || {}) },
+            safes: { ...DEFAULT_META.assignments.safes, ...(parsed.assignments?.safes || {}) }
+          }
+        };
+        return cachedBranchMeta;
+      }
+    } catch (e) {}
+  }
+  cachedBranchMeta = JSON.parse(JSON.stringify(DEFAULT_META));
+  return cachedBranchMeta;
+}
+
+export async function getBranchMeta(forceRemote = false) {
+  const now = Date.now();
+  if (!forceRemote && cachedBranchMeta && now - lastMetaSyncTime < 3000) {
+    return cachedBranchMeta;
+  }
+  const localMeta = getCachedBranchMeta();
+  try {
+    const { data: metaRow } = await supabase
+      .from('safes')
+      .select('notes')
+      .eq('id', META_SAFE_ID)
+      .maybeSingle();
+
+    if (metaRow && metaRow.notes) {
+      const parsed = JSON.parse(metaRow.notes);
+      cachedBranchMeta = {
+        branches: Array.isArray(parsed.branches) ? parsed.branches : localMeta.branches,
+        assignments: {
+          merchants: { ...localMeta.assignments.merchants, ...(parsed.assignments?.merchants || {}) },
+          drivers: { ...localMeta.assignments.drivers, ...(parsed.assignments?.drivers || {}) },
+          shipments: { ...localMeta.assignments.shipments, ...(parsed.assignments?.shipments || {}) },
+          employees: { ...localMeta.assignments.employees, ...(parsed.assignments?.employees || {}) },
+          safes: { ...DEFAULT_META.assignments.safes, ...localMeta.assignments.safes, ...(parsed.assignments?.safes || {}) }
+        }
+      };
+      lastMetaSyncTime = now;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(BRANCHES_STORAGE_KEY, JSON.stringify(cachedBranchMeta));
+      }
+      return cachedBranchMeta;
+    } else {
+      // Seed initial meta row in Supabase
+      await saveBranchMeta(localMeta);
+    }
+  } catch (e) {
+    console.warn('getBranchMeta sync warning:', e);
+  }
+  return localMeta;
+}
+
+export async function saveBranchMeta(newMeta) {
+  cachedBranchMeta = newMeta;
+  lastMetaSyncTime = Date.now();
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(BRANCHES_STORAGE_KEY, JSON.stringify(newMeta));
+  }
+  try {
+    const payload = {
+      id: META_SAFE_ID,
+      name: '__SYSTEM_BRANCHES_META__',
+      code: 'SYS_META',
+      branch: 'SYSTEM',
+      initial_balance: 0,
+      balance: 0,
+      active: false,
+      notes: JSON.stringify(newMeta)
+    };
+    const { data: existing } = await supabase.from('safes').select('id').eq('id', META_SAFE_ID).maybeSingle();
+    if (existing) {
+      await supabase.from('safes').update({ notes: JSON.stringify(newMeta) }).eq('id', META_SAFE_ID);
+    } else {
+      await supabase.from('safes').insert(payload);
+    }
+  } catch (e) {
+    console.warn('saveBranchMeta error:', e);
+  }
+  return newMeta;
+}
+
+export async function ensureBranchSafesExist(branch) {
+  if (!branch || !branch.id || branch.id === 'MAIN') return;
+  const mainSafeId = branch.mainSafeId || `SAFE-MAIN-${branch.id}`;
+  const custodySafeId = branch.custodySafeId || `SAFE-CUST-${branch.id}`;
+
+  try {
+    const { data: existingSafes } = await supabase
+      .from('safes')
+      .select('id')
+      .in('id', [mainSafeId, custodySafeId]);
+    const existingIds = new Set((existingSafes || []).map(s => s.id));
+
+    if (!existingIds.has(mainSafeId)) {
+      await supabase.from('safes').insert({
+        id: mainSafeId,
+        name: `خزينة ${branch.name}`,
+        code: `${branch.code || branch.id}-SAFE`,
+        branch: branch.name,
+        initial_balance: 0,
+        balance: 0,
+        active: true,
+        notes: `الخزينة الرئيسية المخصصة لـ ${branch.name}`
+      });
+    }
+    if (!existingIds.has(custodySafeId)) {
+      await supabase.from('safes').insert({
+        id: custodySafeId,
+        name: `خزينة عُهد السائقين - ${branch.name}`,
+        code: `${branch.code || branch.id}-CUST`,
+        branch: branch.name,
+        initial_balance: 0,
+        balance: 0,
+        active: true,
+        notes: `خزينة العهد الميدانية للسائقين التابعين لـ ${branch.name}`
+      });
+    }
+  } catch (e) {
+    console.warn('ensureBranchSafesExist error:', e);
+  }
+}
+
+export async function getBranches() {
+  const meta = await getBranchMeta();
+  return meta.branches || [];
+}
+
+export async function saveBranch(branchData) {
+  const meta = await getBranchMeta(true);
+  const branches = [...(meta.branches || [])];
+
+  if (branchData.id) {
+    const idx = branches.findIndex(b => b.id === branchData.id);
+    if (idx !== -1) {
+      branches[idx] = { ...branches[idx], ...branchData };
+      await ensureBranchSafesExist(branches[idx]);
+    } else {
+      const mainSafeId = branchData.mainSafeId || `SAFE-MAIN-${branchData.id}`;
+      const custodySafeId = branchData.custodySafeId || `SAFE-CUST-${branchData.id}`;
+      const created = {
+        ...branchData,
+        mainSafeId,
+        custodySafeId,
+        active: branchData.active !== false,
+        permissions: branchData.permissions || ['overview', 'shipments', 'wallet', 'drivers', 'merchants', 'tickets', 'reports', 'safes', 'employees', 'logs'],
+        createdAt: new Date().toISOString()
+      };
+      branches.push(created);
+      meta.assignments.safes[mainSafeId] = created.id;
+      meta.assignments.safes[custodySafeId] = created.id;
+      await ensureBranchSafesExist(created);
+    }
+  } else {
+    const newId = `BR-${Math.floor(100 + Math.random() * 900)}`;
+    const mainSafeId = `SAFE-MAIN-${newId}`;
+    const custodySafeId = `SAFE-CUST-${newId}`;
+    const created = {
+      ...branchData,
+      id: newId,
+      code: branchData.code || newId,
+      mainSafeId,
+      custodySafeId,
+      active: branchData.active !== false,
+      permissions: branchData.permissions || ['overview', 'shipments', 'wallet', 'drivers', 'merchants', 'tickets', 'reports', 'safes', 'employees', 'logs'],
+      createdAt: new Date().toISOString()
+    };
+    branches.push(created);
+    meta.assignments.safes[mainSafeId] = newId;
+    meta.assignments.safes[custodySafeId] = newId;
+    await ensureBranchSafesExist(created);
+  }
+
+  meta.branches = branches;
+  await saveBranchMeta(meta);
+  return branches;
+}
+
+export async function deleteBranch(branchId) {
+  const meta = await getBranchMeta(true);
+  meta.branches = (meta.branches || []).filter(b => b.id !== branchId);
+  await saveBranchMeta(meta);
+  return meta.branches;
+}
+
+export async function toggleBranchStatus(branchId) {
+  const meta = await getBranchMeta(true);
+  meta.branches = (meta.branches || []).map(b =>
+    b.id === branchId ? { ...b, active: !b.active } : b
+  );
+  await saveBranchMeta(meta);
+  return meta.branches;
+}
+
+export async function assignEntityToBranch(entityType, entityId, branchId) {
+  const meta = await getBranchMeta(true);
+  if (!meta.assignments[entityType]) {
+    meta.assignments[entityType] = {};
+  }
+  if (!branchId || branchId === 'MAIN') {
+    delete meta.assignments[entityType][entityId];
+  } else {
+    meta.assignments[entityType][entityId] = branchId;
+  }
+  await saveBranchMeta(meta);
+  return meta;
+}
+
+export function resolveShipmentBranchId(sh, meta) {
+  const m = meta || getCachedBranchMeta();
+  const trk = sh.tracking_number || sh.trackingNumber;
+  if (trk && m.assignments?.shipments?.[trk]) {
+    return m.assignments.shipments[trk];
+  }
+  const mId = sh.merchant_id || sh.merchantId;
+  if (mId && m.assignments?.merchants?.[mId]) {
+    return m.assignments.merchants[mId];
+  }
+  const dId = sh.assigned_driver_id || sh.assignedDriver;
+  if (dId && m.assignments?.drivers?.[dId]) {
+    return m.assignments.drivers[dId];
+  }
+  return 'MAIN';
+}
+
+export function getBranchCustodySafeId(branchId, meta) {
+  if (!branchId || branchId === 'MAIN') return 'SAFE-005';
+  const m = meta || getCachedBranchMeta();
+  const br = (m.branches || []).find(b => b.id === branchId);
+  return br?.custodySafeId || `SAFE-CUST-${branchId}`;
+}
+
+export function getBranchMainSafeId(branchId, meta) {
+  if (!branchId || branchId === 'MAIN') return 'SAFE-001';
+  const m = meta || getCachedBranchMeta();
+  const br = (m.branches || []).find(b => b.id === branchId);
+  return br?.mainSafeId || `SAFE-MAIN-${branchId}`;
+}
+
 // Helper to map DB shipments to Frontend format
 function mapShipmentFromDb(sh) {
   return {
@@ -69,14 +381,19 @@ function mapDriverFromDb(d) {
 // ─── Shipments ────────────────────────────────────────────────
 
 export async function getShipments() {
-  const { data, error } = await supabase
-    .from('shipments')
-    .select('*, history:shipment_history(*)');
+  const [meta, { data, error }] = await Promise.all([
+    getBranchMeta(),
+    supabase.from('shipments').select('*, history:shipment_history(*)')
+  ]);
   if (error) {
     console.error('getShipments error:', error);
     return [];
   }
-  return data.map(mapShipmentFromDb);
+  return data.map(sh => {
+    const mapped = mapShipmentFromDb(sh);
+    mapped.branchId = resolveShipmentBranchId(sh, meta);
+    return mapped;
+  });
 }
 
 export async function generateNextTrackingNumber() {
@@ -143,6 +460,10 @@ export async function addShipment(data) {
     console.error('addShipment error:', error);
     alert(`حدث خطأ أثناء إضافة الشحنة (Supabase Error): ${error.message || JSON.stringify(error)}`);
     throw new Error(error.message || 'Supabase Insert Error');
+  }
+
+  if (data.branchId && data.branchId !== 'MAIN') {
+    await assignEntityToBranch('shipments', trackingNumber, data.branchId);
   }
 
   // Add initial history
@@ -296,12 +617,15 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
         });
       }
 
-      // 2. Automatically Record Net COD Value into Drivers Custody Safe (SAFE-005)
+      // 2. Automatically Record Net COD Value into the appropriate Drivers Custody Safe (HQ or Branch)
+      const meta = await getBranchMeta();
+      const shBranchId = resolveShipmentBranchId(sh, meta);
+      const targetCustodySafeId = getBranchCustodySafeId(shBranchId, meta);
       const safeTxs = await getSafeTransactions();
       const alreadySafeRecorded = safeTxs.some(t => t.ref === trackingNumber && t.type === 'deposit');
       if (!alreadySafeRecorded && netCustodyAmt > 0) {
         await recordSafeTransaction({
-          safeId: 'SAFE-005',
+          safeId: targetCustodySafeId,
           type: 'deposit',
           amount: netCustodyAmt,
           description: `عُهدة نقدية ميدانية مع السائق - شحنة (${trackingNumber})`,
@@ -367,7 +691,10 @@ export async function assignDriverToShipment(trackingNumber, driverId) {
 // ─── Users / Merchants ────────────────────────────────────────
 
 export async function getUsers() {
-  const { data: merchants, error } = await supabase.from('merchants').select('*');
+  const [meta, { data: merchants, error }] = await Promise.all([
+    getBranchMeta(),
+    supabase.from('merchants').select('*')
+  ]);
   if (error) return [];
   
   // Calculate balances dynamically (shipments table primary key is tracking_number)
@@ -423,9 +750,39 @@ export async function getUsers() {
       joinDate: m.created_at ? new Date(m.created_at).toISOString().split('T')[0] : (m.id === 'TU-01' ? '2026-06-15' : (m.id === 'TU-02' ? '2026-07-01' : (m.id.startsWith('usr-') ? new Date().toISOString().split('T')[0] : '2026-07-08'))),
       walletBalance,
       totalEarned,
-      totalWithdrawn
+      totalWithdrawn,
+      branchId: meta.assignments?.merchants?.[m.id] || 'MAIN'
     };
   });
+}
+
+export async function addMerchant(data) {
+  const { data: existingList } = await supabase.from('merchants').select('id');
+  const nextIdx = (existingList?.length || 4) + 1;
+  const newId = data.id || `TU-${String(nextIdx).padStart(2, '0')}-${Math.floor(10 + Math.random() * 89)}`;
+  const cleanPhone = String(data.phone || '').replace(/[\s\+\-]/g, '');
+
+  const payload = {
+    id: newId,
+    store_name: data.storeName,
+    owner_name: data.name || data.ownerName,
+    phone: cleanPhone,
+    email: data.email || `${newId.toLowerCase()}@tamowil.ly`,
+    active: data.verified !== false,
+    wallet_balance: 0
+  };
+
+  const { error } = await supabase.from('merchants').insert(payload);
+  if (error) {
+    console.error('addMerchant error:', error);
+    throw new Error(error.message || 'تعذر إنشاء حساب التاجر');
+  }
+
+  if (data.branchId && data.branchId !== 'MAIN') {
+    await assignEntityToBranch('merchants', newId, data.branchId);
+  }
+
+  return getUsers();
 }
 
 export async function toggleUserVerification(id) {
@@ -470,10 +827,13 @@ export async function toggleUserVerification(id) {
 // ─── Payout Requests ─────────────────────────────────────────
 
 export async function getPayoutRequests() {
-  const { data, error } = await supabase
-    .from('payout_requests')
-    .select('*')
-    .order('requested_at', { ascending: false });
+  const [meta, { data, error }] = await Promise.all([
+    getBranchMeta(),
+    supabase
+      .from('payout_requests')
+      .select('*')
+      .order('requested_at', { ascending: false })
+  ]);
   if (error) return [];
   return data.map(p => ({
     id: p.id,
@@ -487,7 +847,8 @@ export async function getPayoutRequests() {
     status: p.status,
     requestedAt: p.requested_at ? new Date(p.requested_at) : null,
     processedAt: p.processed_at ? new Date(p.processed_at) : null,
-    note: p.note || ''
+    note: p.note || '',
+    branchId: meta.assignments?.merchants?.[p.merchant_id] || 'MAIN'
   }));
 }
 
@@ -555,9 +916,12 @@ export async function rejectPayoutRequest(id) {
 // ─── Transaction Log ──────────────────────────────────────────
 
 export async function getTransactionLog() {
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*, merchants(store_name)');
+  const [meta, { data, error }] = await Promise.all([
+    getBranchMeta(),
+    supabase
+      .from('transactions')
+      .select('*, merchants(store_name)')
+  ]);
   if (error) return [];
   return data.map(tx => ({
     id: tx.id,
@@ -567,7 +931,8 @@ export async function getTransactionLog() {
     amount: Number(tx.amount),
     description: tx.type_ar,
     ref: tx.reference,
-    date: tx.date ? new Date(tx.date) : null
+    date: tx.date ? new Date(tx.date) : null,
+    branchId: meta.assignments?.merchants?.[tx.merchant_id] || meta.assignments?.safes?.[tx.merchant_id] || 'MAIN'
   }));
 }
 
@@ -648,7 +1013,10 @@ export async function manualCredit(merchantId, amount, description, type = 'payo
 // ─── Drivers ─────────────────────────────────────────────────
 
 export async function getDrivers() {
-  const { data: drivers, error } = await supabase.from('drivers').select('*');
+  const [meta, { data: drivers, error }] = await Promise.all([
+    getBranchMeta(),
+    supabase.from('drivers').select('*')
+  ]);
   if (error) return [];
 
   const { data: shipments } = await supabase
@@ -682,6 +1050,7 @@ export async function getDrivers() {
     mapped.pendingSettlement = pendingSettlement;
     mapped.shipmentsCompleted = deliveredShipments.length;
     mapped.shipmentsToday = dShipments.length;
+    mapped.branchId = meta.assignments?.drivers?.[d.id] || 'MAIN';
     return mapped;
   });
 }
@@ -700,6 +1069,9 @@ export async function addDriver(data) {
     password: data.password
   };
   await supabase.from('drivers').insert(newDriver);
+  if (data.branchId && data.branchId !== 'MAIN') {
+    await assignEntityToBranch('drivers', newDriver.id, data.branchId);
+  }
   return getDrivers();
 }
 
@@ -732,6 +1104,12 @@ export async function settleDriver(driverId, amount, note, safeId = 'SAFE-001') 
   inFlightSettlements.add(lockKey);
 
   try {
+    const meta = await getBranchMeta();
+    const drvBranchId = meta.assignments?.drivers?.[driverId] || 'MAIN';
+    const custodySafeId = getBranchCustodySafeId(drvBranchId, meta);
+    const defaultMainSafeId = getBranchMainSafeId(drvBranchId, meta);
+    const targetSafeId = (safeId && (drvBranchId === 'MAIN' || safeId !== 'SAFE-001')) ? safeId : defaultMainSafeId;
+
     const { data: d } = await supabase.from('drivers').select('*').eq('id', driverId).single();
     if (d) {
       const currentPending = Number(d.pending_settlement || 0);
@@ -756,9 +1134,9 @@ export async function settleDriver(driverId, amount, note, safeId = 'SAFE-001') 
         status: 'Settled'
       });
 
-      // 1. Deduct settled amount from Drivers Custody Safe (SAFE-005)
+      // 1. Deduct settled amount from Drivers Custody Safe (HQ or Branch Custody Safe)
       await recordSafeTransaction({
-        safeId: 'SAFE-005',
+        safeId: custodySafeId,
         type: 'withdrawal',
         amount: amountVal,
         description: `تفريغ عُهدة نقدية وتصفية حساب مع السائق (${d.name})`,
@@ -766,9 +1144,9 @@ export async function settleDriver(driverId, amount, note, safeId = 'SAFE-001') 
       });
 
       // 2. Deposit net settled amount into Target Main/Branch Safe
-      if (safeId) {
+      if (targetSafeId) {
         await recordSafeTransaction({
-          safeId: safeId,
+          safeId: targetSafeId,
           type: 'deposit',
           amount: amountVal,
           description: `استلام تسوية عُهدة نقدية من السائق (${d.name})`,
@@ -783,10 +1161,13 @@ export async function settleDriver(driverId, amount, note, safeId = 'SAFE-001') 
 }
 
 export async function getDriverSettlements() {
-  const { data, error } = await supabase
-    .from('driver_settlements')
-    .select('*, drivers(name)')
-    .order('date', { ascending: false });
+  const [meta, { data, error }] = await Promise.all([
+    getBranchMeta(),
+    supabase
+      .from('driver_settlements')
+      .select('*, drivers(name)')
+      .order('date', { ascending: false })
+  ]);
   if (error) return [];
   return data.map(s => ({
     id: s.id,
@@ -795,7 +1176,8 @@ export async function getDriverSettlements() {
     amount: Number(s.amount),
     note: s.note,
     date: s.date ? new Date(s.date) : null,
-    status: s.status
+    status: s.status,
+    branchId: meta.assignments?.drivers?.[s.driver_id] || 'MAIN'
   }));
 }
 
@@ -1080,6 +1462,7 @@ const syncingSafeShipmentRefs = new Set();
 
 export async function getSafes() {
   let safes = [];
+  const meta = await getBranchMeta();
 
   // Fetch strictly from dedicated safes table in Supabase DB
   try {
@@ -1088,43 +1471,78 @@ export async function getSafes() {
       .select('*');
 
     if (!dedicatedErr && dedicatedSafes) {
-      safes = dedicatedSafes.map(s => ({
-        id: s.id,
-        name: s.name,
-        code: s.code,
-        branch: s.branch,
-        initialBalance: Number(s.initial_balance || 0),
-        balance: Number(s.balance || 0),
-        active: s.active,
-        notes: s.notes
-      }));
+      safes = dedicatedSafes
+        .filter(s => s.id !== META_SAFE_ID && s.code !== 'SYS_META')
+        .map(s => ({
+          id: s.id,
+          name: s.name,
+          code: s.code,
+          branch: s.branch,
+          initialBalance: Number(s.initial_balance || 0),
+          balance: Number(s.balance || 0),
+          active: s.active,
+          notes: s.notes
+        }));
     }
   } catch (e) {
     console.warn('Fetch safes error:', e);
   }
 
+  // Ensure each branch has its Main Safe and Custody Safe represented
+  for (const br of (meta.branches || [])) {
+    const mainId = br.mainSafeId || `SAFE-MAIN-${br.id}`;
+    const custId = br.custodySafeId || `SAFE-CUST-${br.id}`;
+    if (!safes.some(s => s.id === mainId)) {
+      safes.push({
+        id: mainId,
+        name: `خزينة ${br.name}`,
+        code: `${br.code || br.id}-SAFE`,
+        branch: br.name,
+        initialBalance: 0,
+        balance: 0,
+        active: true,
+        notes: `الخزينة الرئيسية المخصصة لـ ${br.name}`
+      });
+    }
+    if (!safes.some(s => s.id === custId)) {
+      safes.push({
+        id: custId,
+        name: `خزينة عُهد السائقين - ${br.name}`,
+        code: `${br.code || br.id}-CUST`,
+        branch: br.name,
+        initialBalance: 0,
+        balance: 0,
+        active: true,
+        notes: `خزينة العهد الميدانية للسائقين التابعين لـ ${br.name}`
+      });
+    }
+  }
+
   // 2. Fetch all safe transactions 100% live from Supabase DB
   let txs = await getSafeTransactions();
 
-  // 3. Auto-sync delivered shipments live from Supabase shipments table
+  // 3. Auto-sync delivered shipments live from Supabase shipments table into the appropriate Custody Safe (HQ or Branch)
   try {
     const { data: deliveredShipments } = await supabase
       .from('shipments')
-      .select('tracking_number, price, product_price, delivery_fee, cod_fee, status, delivery_charge_on')
+      .select('tracking_number, price, product_price, delivery_fee, cod_fee, status, delivery_charge_on, merchant_id, assigned_driver_id')
       .in('status', ['Delivered', 'تم التسليم']);
 
     if (deliveredShipments && deliveredShipments.length > 0) {
-      const safeObj = safes.find(s => s.id === 'SAFE-005');
       for (const sh of deliveredShipments) {
         const trk = sh.tracking_number;
         if (syncingSafeShipmentRefs.has(trk)) continue;
         syncingSafeShipmentRefs.add(trk);
         try {
+          const shBranchId = resolveShipmentBranchId(sh, meta);
+          const targetCustodySafeId = getBranchCustodySafeId(shBranchId, meta);
+          const safeObj = safes.find(s => s.id === targetCustodySafeId);
+
           const { data: dbCheck } = await supabase
             .from('safe_transactions')
             .select('id')
-            .eq('safe_id', 'SAFE-005')
-            .eq('reference', trk);
+            .eq('reference', trk)
+            .eq('type', 'deposit');
 
           const alreadyRecorded = dbCheck && dbCheck.length > 0;
           if (!alreadyRecorded) {
@@ -1138,7 +1556,7 @@ export async function getSafes() {
               
               await supabase.from('safe_transactions').insert({
                 id: txId,
-                safe_id: 'SAFE-005',
+                safe_id: targetCustodySafeId,
                 safe_name: safeObj?.name || 'خزينة عُهد السائقين',
                 type: 'deposit',
                 amount: netCustodyAmt,
@@ -1151,15 +1569,15 @@ export async function getSafes() {
                 type: 'safe_deposit',
                 type_ar: desc,
                 amount: netCustodyAmt,
-                reference: `SAFE-005::${safeObj?.name || 'خزينة عُهد السائقين'}::${trk}`,
+                reference: `${targetCustodySafeId}::${safeObj?.name || 'خزينة عُهد السائقين'}::${trk}`,
                 status: 'Completed',
-                merchant_id: 'SAFE-005'
+                merchant_id: targetCustodySafeId
               });
 
               txs.unshift({
                 id: txId,
-                safeId: 'SAFE-005',
-                safeName: safeObj?.name || 'خزينة عُهد السائقين (العهد الميدانية)',
+                safeId: targetCustodySafeId,
+                safeName: safeObj?.name || 'خزينة عُهد السائقين',
                 type: 'deposit',
                 amount: netCustodyAmt,
                 description: desc,
@@ -1177,7 +1595,7 @@ export async function getSafes() {
     console.warn('Sync delivered shipments to safes error:', err);
   }
 
-  // 4. Recalculate dynamic balance 100% from actual logged DB transactions
+  // 4. Recalculate dynamic balance 100% from actual logged DB transactions + enrich with branchId & role flags
   return safes.map(s => {
     const safeTxs = txs.filter(t => t.safeId === s.id);
     const deposits = safeTxs
@@ -1188,8 +1606,30 @@ export async function getSafes() {
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
     const initial = Number(s.initialBalance || 0);
+    const matchedBranch = (meta.branches || []).find(
+      b => b.mainSafeId === s.id || b.custodySafeId === s.id || b.id === s.branch || b.name === s.branch
+    );
+    const resolvedBranchId =
+      meta.assignments?.safes?.[s.id] ||
+      matchedBranch?.id ||
+      (s.id.startsWith('SAFE-MAIN-BR-') ? s.id.replace('SAFE-MAIN-', '') : null) ||
+      (s.id.startsWith('SAFE-CUST-BR-') ? s.id.replace('SAFE-CUST-', '') : null) ||
+      'MAIN';
+
+    const isMainSafe =
+      s.id === 'SAFE-001' ||
+      s.id.startsWith('SAFE-MAIN-') ||
+      (meta.branches || []).some(b => b.mainSafeId === s.id);
+    const isCustodySafe =
+      s.id === 'SAFE-005' ||
+      s.id.startsWith('SAFE-CUST-') ||
+      (meta.branches || []).some(b => b.custodySafeId === s.id);
+
     return {
       ...s,
+      branchId: resolvedBranchId,
+      isMainSafe,
+      isCustodySafe,
       balance: Math.max(0, initial + deposits - withdrawals)
     };
   });
@@ -1222,6 +1662,12 @@ export async function addSafe(safeData) {
     });
   } catch (e) {
     console.warn('Insert safe to Supabase error:', e);
+  }
+
+  if (safeData.branchId && safeData.branchId !== 'MAIN') {
+    await assignEntityToBranch('safes', newSafe.id, safeData.branchId);
+  } else {
+    await assignEntityToBranch('safes', newSafe.id, 'MAIN');
   }
 
   // Log initial balance transaction if > 0
@@ -1258,7 +1704,7 @@ export async function updateSafe(safeId, updatedFields) {
 }
 
 export async function deleteSafe(safeId) {
-  if (safeId === 'SAFE-001' || safeId === 'SAFE-005') return getSafes();
+  if (safeId === 'SAFE-001' || safeId === 'SAFE-005' || safeId === META_SAFE_ID) return getSafes();
 
   try {
     await supabase.from('safes').delete().eq('id', safeId);
@@ -1275,9 +1721,10 @@ export async function recordSafeTransaction({ safeId, type, amount, description,
   const amtVal = Math.abs(Number(amount || 0));
   const safeObj = safes.find(s => s.id === safeId);
   const currentBal = Number(safeObj?.balance || 0);
+  const isCustody = safeId === 'SAFE-005' || safeId.startsWith('SAFE-CUST-') || !!safeObj?.isCustodySafe;
 
   // Validate balance if withdrawing from safe (except field driver custody safe)
-  if ((type === 'withdrawal' || type === 'transfer_out') && safeId !== 'SAFE-005') {
+  if ((type === 'withdrawal' || type === 'transfer_out') && !isCustody) {
     if (currentBal < amtVal) {
       throw new Error(`رصيد الخزينة المحددة (${safeObj?.name || safeId}) غير كافٍ لإتمام العملية. الرصيد المتاح: ${currentBal} د.ل - المطلوب: ${amtVal} د.ل`);
     }
@@ -1365,7 +1812,7 @@ export async function resetSystemData() {
   await supabase.from('payout_requests').delete().neq('id', '0');
   await supabase.from('driver_settlements').delete().neq('id', '0');
   await supabase.from('safe_transactions').delete().neq('id', '0');
-  await supabase.from('safes').update({ balance: 0, initial_balance: 0 }).neq('id', '0');
+  await supabase.from('safes').update({ balance: 0, initial_balance: 0 }).neq('id', META_SAFE_ID);
   await supabase.from('drivers').update({ cod_collected: 0, cod_settled: 0, pending_settlement: 0 }).neq('id', '0');
   await supabase.from('merchants').update({ wallet_balance: 0 }).neq('id', '0');
   return true;

@@ -113,8 +113,8 @@ export default function WalletManager() {
   const pendingCount   = useMemo(() => payouts.filter(p => p.status === 'Pending').length, [payouts]);
   const maxBalance     = useMemo(() => Math.max(...merchants.map(m => m.totalEarned || 0), 1), [merchants]);
 
-  // Main Safe (`SAFE-001`) Balance
-  const mainSafe = useMemo(() => safes.find(s => s.id === 'SAFE-001') || safes[0] || { name: 'الخزينة الرئيسية', balance: 0 }, [safes]);
+  // Main Safe (`SAFE-001` or Branch Main Safe) Balance
+  const mainSafe = useMemo(() => safes.find(s => s.id === 'SAFE-001' || s.isMainSafe) || safes.find(s => !s.isCustodySafe) || safes[0] || { id: 'SAFE-001', name: 'الخزينة الرئيسية', balance: 0 }, [safes]);
 
   // ── Filters & Search ─────────────────────────────────────────
   const filteredMerchants = useMemo(() => {
@@ -165,7 +165,7 @@ export default function WalletManager() {
     setToastMsg(isAr ? '⏳ جاري اعتماد طلب السحب وصرف النقدية...' : 'Processing payout...');
 
     try {
-      await approvePayoutRequest(id, selectedSafeId || 'SAFE-001');
+      await approvePayoutRequest(id, (selectedSafeId && selectedSafeId !== 'SAFE-001') ? selectedSafeId : (mainSafe?.id || 'SAFE-001'));
       setToastMsg(isAr ? '✅ تم اعتماد طلب السحب وتوفير الكاش بنجاح!' : 'Payout approved successfully!');
       setTimeout(() => setToastMsg(null), 5000);
     } catch (err) {
@@ -197,7 +197,7 @@ export default function WalletManager() {
     setToastMsg(isAr ? '⏳ جاري تنفيذ التسوية المالية وإقفال المستحقات...' : 'Executing settlement...');
 
     try {
-      await manualCredit(targetForm.merchantId, targetForm.amount, targetForm.description, targetForm.type || 'payout', targetForm.safeId || 'SAFE-001');
+      await manualCredit(targetForm.merchantId, targetForm.amount, targetForm.description, targetForm.type || 'payout', (targetForm.safeId && targetForm.safeId !== 'SAFE-001') ? targetForm.safeId : (mainSafe?.id || 'SAFE-001'));
       setToastMsg(isAr ? '✅ تم إتمام التسوية المالية بنجاح!' : 'Settlement executed successfully!');
       setTimeout(() => setToastMsg(null), 5000);
     } catch (err) {
@@ -597,7 +597,7 @@ export default function WalletManager() {
                             amount: String(m.walletBalance || 0),
                             type: 'payout',
                             description: `تسوية وصرف أرصدة التاجر (${m.storeName})`,
-                            safeId: 'SAFE-001'
+                            safeId: mainSafe?.id || 'SAFE-001'
                           });
                           setShowManual(true);
                         }}

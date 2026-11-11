@@ -4,10 +4,20 @@ import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 
 export default function MerchantsList() {
-  const { lang, merchants, toggleUserVerification, shipmentsList, transactionLog } = useApp();
+  const { lang, merchants, toggleUserVerification, addMerchant, shipmentsList, transactionLog, activeBranchObj } = useApp();
   const isAr = lang === 'ar';
 
   const [selectedMerchantId, setSelectedMerchantId] = useState(null);
+  const [showAddMerchant, setShowAddMerchant] = useState(false);
+  const [newMerchantForm, setNewMerchantForm] = useState({ storeName: '', name: '', phone: '', email: '' });
+
+  const handleAddMerchantSubmit = async (e) => {
+    e.preventDefault();
+    if (!newMerchantForm.storeName || !newMerchantForm.phone) return;
+    await addMerchant({ ...newMerchantForm, verified: true });
+    setNewMerchantForm({ storeName: '', name: '', phone: '', email: '' });
+    setShowAddMerchant(false);
+  };
 
   const handleToggleVerify = (id) => {
     toggleUserVerification(id);
@@ -140,14 +150,51 @@ export default function MerchantsList() {
   return (
     <div className="flex flex-col gap-6">
       {/* Title block */}
-      <div>
-        <h1 className="title-large">{isAr ? 'التحقق من حسابات التجار' : 'Verify Merchant Accounts'}</h1>
-        <p className="subtitle">
-          {isAr
-            ? 'مراجعة طلبات التسجيل المقدمة من المتاجر الجديدة وتفعيل أو إلغاء تفعيل حساباتهم.'
-            : 'Review merchant signup requests and activate or deactivate their shop accounts.'}
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h1 className="title-large">{isAr ? 'إدارة والتحقق من حسابات التجار' : 'Verify Merchant Accounts'}</h1>
+          <p className="subtitle">
+            {isAr
+              ? `مراجعة وإدارة حسابات المتاجر وتفعيلها ${activeBranchObj ? `(${activeBranchObj.name})` : '(النظام الرئيسي)'}.`
+              : 'Review merchant signup requests and activate or deactivate their shop accounts.'}
+          </p>
+        </div>
+        <button className="glass-button" onClick={() => setShowAddMerchant(true)}>
+          + {isAr ? 'إضافة تاجر جديد' : 'Add Merchant'}
+        </button>
       </div>
+
+      {showAddMerchant && (
+        <div className="modal-overlay" onClick={() => setShowAddMerchant(false)}>
+          <div className="modal-content glass-panel" style={{ padding: '28px', maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '20px' }}>
+              {isAr ? 'إضافة حساب تاجر جديد' : 'Add New Merchant'}
+            </h3>
+            <form onSubmit={handleAddMerchantSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>{isAr ? 'اسم المتجر' : 'Store Name'}</label>
+                <input required type="text" className="glass-input" placeholder={isAr ? 'مثال: متجر الأناقة' : 'Store Name'} value={newMerchantForm.storeName} onChange={e => setNewMerchantForm(p => ({ ...p, storeName: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>{isAr ? 'اسم المالك' : 'Owner Name'}</label>
+                <input required type="text" className="glass-input" placeholder={isAr ? 'الاسم الكامل' : 'Owner Name'} value={newMerchantForm.name} onChange={e => setNewMerchantForm(p => ({ ...p, name: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>{isAr ? 'رقم الهاتف (لتسجيل الدخول بالتطبيق)' : 'Phone Number'}</label>
+                <input required type="text" className="glass-input" placeholder="09xxxxxxxx" value={newMerchantForm.phone} onChange={e => setNewMerchantForm(p => ({ ...p, phone: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>{isAr ? 'البريد الإلكتروني (اختياري)' : 'Email (Optional)'}</label>
+                <input type="email" className="glass-input" placeholder="store@example.com" value={newMerchantForm.email} onChange={e => setNewMerchantForm(p => ({ ...p, email: e.target.value }))} />
+              </div>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                <button type="button" onClick={() => setShowAddMerchant(false)} style={{ padding: '10px 20px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>{isAr ? 'إلغاء' : 'Cancel'}</button>
+                <button type="submit" className="glass-button">{isAr ? 'حفظ وتفعيل التاجر' : 'Save & Activate'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Merchants list table */}
       <div className="glass-card" style={{ padding: '0', overflowX: 'auto' }}>

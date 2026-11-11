@@ -14,10 +14,11 @@ import PricingManager from '@/components/PricingManager';
 import ReportsView    from '@/components/ReportsView';
 import SafesManager  from '@/components/SafesManager';
 import SystemLogView from '@/components/SystemLogView';
+import BranchesManager from '@/components/BranchesManager';
 import GlobalDateFilter from '@/components/GlobalDateFilter';
 
 export default function AdminPage() {
-  const { currentUser, loading } = useApp();
+  const { currentUser, isSuperAdmin, activeBranchFilter, setActiveBranchFilter, activeBranchObj, loading } = useApp();
   const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
@@ -93,13 +94,49 @@ export default function AdminPage() {
     <ReportsView />,
     <SafesManager />,
     <EmployeesManager />,
-    <SystemLogView />
+    <SystemLogView />,
+    <BranchesManager />
   ];
 
   return (
     <div className="dashboard-layout" style={{ flexDirection: 'row' }}>
       {/* Main content first in HTML = left side */}
       <main className="main-content">
+        {isSuperAdmin && activeBranchFilter !== 'MAIN' && activeBranchObj && (
+          <div style={{
+            marginBottom: '16px', padding: '12px 20px', borderRadius: '14px',
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.18), rgba(16,185,129,0.12))',
+            border: '1px solid rgba(99,102,241,0.4)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px'
+          }}>
+            <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' }}>
+              🏢 أنت تتصفح الآن البيانات المعزولة الخاصة بـ: <span style={{ color: '#10B981' }}>{activeBranchObj.name}</span> (جميع الأقسام تعرض معاملات هذا الفرع فقط)
+            </div>
+            <button
+              onClick={() => setActiveBranchFilter('MAIN')}
+              style={{
+                padding: '7px 16px', borderRadius: '10px', border: 'none',
+                background: '#F59E0B', color: '#fff', fontWeight: 800, fontSize: '12px', cursor: 'pointer'
+              }}
+            >
+              ↩ العودة لنظامك الرئيسي المستقل (المركز)
+            </button>
+          </div>
+        )}
+        {currentUser?.role === 'branch_admin' && (
+          <div style={{
+            marginBottom: '16px', padding: '10px 18px', borderRadius: '14px',
+            background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#10B981' }}>
+              🏢 نظام الفرع المستقل: {currentUser.branchName} ({currentUser.city})
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+              بيئة عمل وتسويات وخزائن خاصة بالفرع
+            </span>
+          </div>
+        )}
         <GlobalDateFilter />
         {views[activeTab] ?? <Overview />}
       </main>

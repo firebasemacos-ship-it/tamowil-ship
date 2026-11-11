@@ -88,10 +88,10 @@ export default function SafesManager() {
     return (safes || []).reduce((s, safe) => s + Number(safe.balance || 0), 0);
   }, [safes]);
 
-  // Main Safe (`SAFE-001`)
-  const mainSafe = useMemo(() => (safes || []).find(s => s.id === 'SAFE-001') || safes?.[0] || { balance: 0 }, [safes]);
-  // Drivers Safe (`SAFE-005`)
-  const driversSafe = useMemo(() => (safes || []).find(s => s.id === 'SAFE-005') || { balance: 0 }, [safes]);
+  // Main Safe (`SAFE-001` or Branch Main Safe)
+  const mainSafe = useMemo(() => (safes || []).find(s => s.id === 'SAFE-001' || s.isMainSafe) || safes?.[0] || { balance: 0 }, [safes]);
+  // Drivers Safe (`SAFE-005` or Branch Custody Safe)
+  const driversSafe = useMemo(() => (safes || []).find(s => s.id === 'SAFE-005' || s.isCustodySafe) || { balance: 0 }, [safes]);
 
   // Filtered transactions for main table
   const filteredTransactions = useMemo(() => {
@@ -534,8 +534,8 @@ export default function SafesManager() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
           {(safes || []).map(safe => {
-            const isDrivers = safe.id === 'SAFE-005';
-            const isMain = safe.id === 'SAFE-001';
+            const isDrivers = safe.id === 'SAFE-005' || !!safe.isCustodySafe;
+            const isMain = safe.id === 'SAFE-001' || !!safe.isMainSafe;
 
             return (
               <div key={safe.id} className="glass-card" style={{

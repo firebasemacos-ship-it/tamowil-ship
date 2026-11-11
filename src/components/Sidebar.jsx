@@ -48,15 +48,20 @@ const NAV_ITEMS = [
     id: 10, perm: 'logs', ar: 'سجل حركات النظام (Log)', en: 'System Logs',
     icon: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 17l6-6-6-6M12 19h8"/></svg>,
   },
+  {
+    id: 11, perm: 'branches', ar: 'إدارة الفروع', en: 'Branches', superAdminOnly: true,
+    icon: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>,
+  },
 ];
 
 
 export default function Sidebar({ activeTab, setActiveTab }) {
-  const { theme, lang, toggleTheme, toggleLang, currentUser, logout, updateAdminData, getAdminData } = useApp();
+  const { theme, lang, toggleTheme, toggleLang, currentUser, isSuperAdmin, activeBranchObj, activeBranchFilter, setActiveBranchFilter, logout, updateAdminData, getAdminData } = useApp();
   const [showSettings, setShowSettings] = useState(false);
   const [adminForm, setAdminForm] = useState({ name: '', phone: '', password: '' });
 
   const filteredNavItems = NAV_ITEMS.filter(item => {
+    if (item.superAdminOnly && !isSuperAdmin) return false;
     if (currentUser?.permissions?.includes('all')) return true;
     return currentUser?.permissions?.includes(item.perm);
   });
@@ -149,7 +154,11 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser?.name || 'مستخدم'}</span>
-            <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser?.id === 'admin' ? 'المدير العام' : 'موظف'}</span>
+            <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {currentUser?.id === 'admin'
+                ? (activeBranchFilter !== 'MAIN' && activeBranchObj ? `معاينة: ${activeBranchObj.name}` : 'المدير العام (النظام الرئيسي)')
+                : (currentUser?.role === 'branch_admin' ? `مدير ${currentUser.branchName}` : 'موظف')}
+            </span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
