@@ -174,6 +174,17 @@ export async function recordWaybillPrinted(trackingNumber) {
 }
 
 export async function editShipment(trackingNumber, updatedData) {
+  const newPrice = Number(updatedData.price || 0);
+  const newDelFee = Number(updatedData.deliveryFee || 0);
+  const newCodFee = Number(updatedData.codFee || 0);
+  const { data: existing } = await supabase
+    .from('shipments')
+    .select('delivery_charge_on')
+    .eq('tracking_number', trackingNumber)
+    .maybeSingle();
+  const senderPays = isSenderPaid(existing?.delivery_charge_on);
+  const newProductPrice = senderPays ? newPrice : Math.max(0, newPrice - newDelFee - newCodFee);
+
   const { error } = await supabase
     .from('shipments')
     .update({
@@ -183,9 +194,10 @@ export async function editShipment(trackingNumber, updatedData) {
       receiver_name: updatedData.receiverName,
       receiver_phone: updatedData.receiverPhone,
       receiver_city: updatedData.receiverCity,
-      price: Number(updatedData.price || 0),
-      delivery_fee: Number(updatedData.deliveryFee || 0),
-      cod_fee: Number(updatedData.codFee || 0),
+      price: newPrice,
+      product_price: newProductPrice,
+      delivery_fee: newDelFee,
+      cod_fee: newCodFee,
     })
     .eq('tracking_number', trackingNumber);
   if (error) console.error('editShipment error:', error);
@@ -259,6 +271,12 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
       .single();
 
       if (sh) {
+      const rawCashCollected = Number(sh.price || 0);
+      const delFee = Number(sh.delivery_fee || 0);
+      const codFee = Number(sh.cod_fee || 0);
+      const merchantNet = Math.max(0, rawCashCollected - delFee - codFee);
+      const netCustodyAmt = Math.max(0, rawCashCollected - delFee);
+
       // 1. Record Merchant Credit Transaction
       const { data: existingTx } = await supabase
         .from('transactions')
@@ -271,17 +289,12 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
           id: `TXN-${Date.now()}`,
           type: 'credit',
           type_ar: `تحصيل COD - شحنة ${trackingNumber}`,
-          amount: Number(sh.price || 0) - Number(sh.delivery_fee || 0) - Number(sh.cod_fee || 0),
+          amount: merchantNet,
           reference: trackingNumber,
           status: 'Completed',
           merchant_id: sh.merchant_id || 'TU-04'
         });
       }
-
-      // Calculate net COD amount (excluding delivery fee which belongs to the driver)
-      const netCustodyAmt = isSenderPaid(sh.delivery_charge_on)
-        ? Number(sh.price || 0)
-        : Math.max(0, (Number(sh.price || 0) > 0 ? Number(sh.price) - Number(sh.delivery_fee || 0) : Number(sh.product_price || 0)));
 
       // 2. Automatically Record Net COD Value into Drivers Custody Safe (SAFE-005)
       const safeTxs = await getSafeTransactions();
@@ -291,7 +304,7 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
           safeId: 'SAFE-005',
           type: 'deposit',
           amount: netCustodyAmt,
-          description: `عُهدة ميدانية مع السائق (صافي البضاعة بدون أجرة التوصيل) - (${trackingNumber})`,
+          description: `عُهدة نقدية ميدانية مع السائق - شحنة (${trackingNumber})`,
           ref: trackingNumber
         });
       }
@@ -305,7 +318,7 @@ export async function updateShipmentStatus(trackingNumber, newStatus, location, 
           .single();
 
         if (drv) {
-          const driverOwes = isSenderPaid(sh.delivery_charge_on) ? Number(sh.product_price || sh.price || 0) : Number(sh.price || 0);
+          const driverOwes = netCustodyAmt;
           const newCollected = Number(drv.cod_collected || 0) + driverOwes;
           const newPending = Number(drv.pending_settlement || 0) + driverOwes;
           await supabase
@@ -371,12 +384,7 @@ export async function getUsers() {
       const price = Number(s.price || 0);
       const deliveryFee = Number(s.delivery_fee || 0);
       const codFee = Number(s.cod_fee || 0);
-      const prodPrice = Number(s.product_price || 0) > 0 ? Number(s.product_price) : Math.max(0, price - deliveryFee - codFee);
-      if (isSenderPaid(s.delivery_charge_on)) {
-        return sum + Math.max(0, prodPrice - deliveryFee - codFee);
-      } else {
-        return sum + prodPrice;
-      }
+      return sum + Math.max(0, price - deliveryFee - codFee);
     }, 0);
 
     const totalWithdrawnFromPayouts = mApprovedPayouts.reduce((sum, p) => sum + Number(p.amount || 0), 0);
@@ -472,8 +480,10 @@ export async function getPayoutRequests() {
     merchantId: p.merchant_id,
     merchantName: p.merchant_name,
     storeName: p.store_name,
+    merchantStore: p.store_name,
     amount: Number(p.amount),
     bankDetails: p.bank_details,
+    bankAccount: p.bank_details,
     status: p.status,
     requestedAt: p.requested_at ? new Date(p.requested_at) : null,
     processedAt: p.processed_at ? new Date(p.processed_at) : null,
@@ -624,7 +634,7 @@ export async function getDrivers() {
 
   const { data: shipments } = await supabase
     .from('shipments')
-    .select('assigned_driver_id, status, price, delivery_fee, delivery_charge_on');
+    .select('assigned_driver_id, status, price, product_price, delivery_fee, delivery_charge_on');
 
   const { data: settlements } = await supabase
     .from('driver_settlements')
@@ -636,10 +646,8 @@ export async function getDrivers() {
     
     // Dynamic Single Source of Truth calculation for driver custody
     const totalCollectedFromShipments = deliveredShipments.reduce((sum, s) => {
-      const price = Number(s.price || 0);
-      const prodPrice = Number(s.product_price || price);
+      const cashCollected = Number(s.price || 0);
       const deliveryFee = Number(s.delivery_fee || 0);
-      const cashCollected = isSenderPaid(s.delivery_charge_on) ? prodPrice : price;
       const driverOwes = Math.max(0, cashCollected - deliveryFee);
       return sum + driverOwes;
     }, 0);
@@ -892,6 +900,7 @@ export async function getDashboardStats() {
   return {
     total, delivered, progress, warehouse, registered, returned,
     totalCodCollected, grossProfits, netCompanyProfits,
+    totalRevenue: netCompanyProfits,
     pendingPayouts, totalMerchantBalance, driversPendingSettlement,
     activeDrivers, dailyRevenue,
     pendingPayoutsCount: payoutRequests.filter(p => p.status === 'Pending').length,
@@ -1028,6 +1037,8 @@ export async function getSafeTransactions() {
   return uniqueTxs.sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
+const syncingSafeShipmentRefs = new Set();
+
 export async function getSafes() {
   let safes = [];
 
@@ -1067,55 +1078,59 @@ export async function getSafes() {
       const safeObj = safes.find(s => s.id === 'SAFE-005');
       for (const sh of deliveredShipments) {
         const trk = sh.tracking_number;
-        const { data: dbCheck } = await supabase
-          .from('safe_transactions')
-          .select('id')
-          .eq('safe_id', 'SAFE-005')
-          .eq('reference', trk);
+        if (syncingSafeShipmentRefs.has(trk)) continue;
+        syncingSafeShipmentRefs.add(trk);
+        try {
+          const { data: dbCheck } = await supabase
+            .from('safe_transactions')
+            .select('id')
+            .eq('safe_id', 'SAFE-005')
+            .eq('reference', trk);
 
-        const alreadyRecorded = dbCheck && dbCheck.length > 0;
-        if (!alreadyRecorded) {
-          const rawCashCollected = isSenderPaid(sh.delivery_charge_on)
-            ? Number(sh.product_price || sh.price || 0)
-            : Number(sh.price || (Number(sh.product_price || 0) + Number(sh.delivery_fee || 0) + Number(sh.cod_fee || 0)));
-          const delFee = Number(sh.delivery_fee || 0);
-          const netCustodyAmt = Math.max(0, rawCashCollected - delFee);
+          const alreadyRecorded = dbCheck && dbCheck.length > 0;
+          if (!alreadyRecorded) {
+            const rawCashCollected = Number(sh.price || 0);
+            const delFee = Number(sh.delivery_fee || 0);
+            const netCustodyAmt = Math.max(0, rawCashCollected - delFee);
 
-          if (netCustodyAmt > 0) {
-            const txId = `STX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-            const desc = `عُهدة نقدية ميدانية مع السائق - شحنة (${trk})`;
-            
-            await supabase.from('safe_transactions').insert({
-              id: txId,
-              safe_id: 'SAFE-005',
-              safe_name: safeObj?.name || 'خزينة عُهد السائقين',
-              type: 'deposit',
-              amount: netCustodyAmt,
-              description: desc,
-              reference: trk
-            });
+            if (netCustodyAmt > 0) {
+              const txId = `STX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+              const desc = `عُهدة نقدية ميدانية مع السائق - شحنة (${trk})`;
+              
+              await supabase.from('safe_transactions').insert({
+                id: txId,
+                safe_id: 'SAFE-005',
+                safe_name: safeObj?.name || 'خزينة عُهد السائقين',
+                type: 'deposit',
+                amount: netCustodyAmt,
+                description: desc,
+                reference: trk
+              });
 
-            await supabase.from('transactions').insert({
-              id: txId,
-              type: 'safe_deposit',
-              type_ar: desc,
-              amount: netCustodyAmt,
-              reference: `SAFE-005::${safeObj?.name || 'خزينة عُهد السائقين'}::${trk}`,
-              status: 'Completed',
-              merchant_id: 'SAFE-005'
-            });
+              await supabase.from('transactions').insert({
+                id: txId,
+                type: 'safe_deposit',
+                type_ar: desc,
+                amount: netCustodyAmt,
+                reference: `SAFE-005::${safeObj?.name || 'خزينة عُهد السائقين'}::${trk}`,
+                status: 'Completed',
+                merchant_id: 'SAFE-005'
+              });
 
-            txs.unshift({
-              id: txId,
-              safeId: 'SAFE-005',
-              safeName: safeObj?.name || 'خزينة عُهد السائقين (العهد الميدانية)',
-              type: 'deposit',
-              amount: netCustodyAmt,
-              description: desc,
-              ref: trk,
-              date: new Date().toISOString()
-            });
+              txs.unshift({
+                id: txId,
+                safeId: 'SAFE-005',
+                safeName: safeObj?.name || 'خزينة عُهد السائقين (العهد الميدانية)',
+                type: 'deposit',
+                amount: netCustodyAmt,
+                description: desc,
+                ref: trk,
+                date: new Date().toISOString()
+              });
+            }
           }
+        } finally {
+          syncingSafeShipmentRefs.delete(trk);
         }
       }
     }
@@ -1305,14 +1320,15 @@ export async function transferBetweenSafes(fromSafeId, toSafeId, amount, note) {
 }
 
 export async function resetSystemData() {
-  await supabase.from('shipment_history').delete().neq('id', '0');
-  await supabase.from('shipments').delete().neq('id', '0');
+  await supabase.from('shipment_history').delete().neq('id', 0);
+  await supabase.from('shipments').delete().neq('tracking_number', '0');
   await supabase.from('transactions').delete().neq('id', '0');
   await supabase.from('payout_requests').delete().neq('id', '0');
   await supabase.from('driver_settlements').delete().neq('id', '0');
   await supabase.from('safe_transactions').delete().neq('id', '0');
-  await supabase.from('safes').update({ balance: 0 }).neq('id', '0');
+  await supabase.from('safes').update({ balance: 0, initial_balance: 0 }).neq('id', '0');
   await supabase.from('drivers').update({ cod_collected: 0, cod_settled: 0, pending_settlement: 0 }).neq('id', '0');
-  return getInitialData();
+  await supabase.from('merchants').update({ wallet_balance: 0 }).neq('id', '0');
+  return true;
 }
 

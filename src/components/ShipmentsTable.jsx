@@ -1419,7 +1419,7 @@ export default function ShipmentsTable() {
                   </div>
                   <div className="wb-product-item">
                     <div>الشحن</div>
-                    <strong>على المستلم</strong>
+                    <strong>{selectedShipment.deliveryChargeOn || 'المستلم'}</strong>
                   </div>
                 </div>
               </div>

@@ -44,7 +44,9 @@ export default function AdminPage() {
         { id: 5, perm: 'tickets' },
         { id: 6, perm: 'pricing' },
         { id: 7, perm: 'reports' },
-        { id: 8, perm: 'employees' }
+        { id: 8, perm: 'safes' },
+        { id: 9, perm: 'employees' },
+        { id: 10, perm: 'logs' }
       ];
       if (!currentUser.permissions.includes('overview')) {
         const firstAllowed = allowedViews.find(v => currentUser.permissions.includes(v.perm));

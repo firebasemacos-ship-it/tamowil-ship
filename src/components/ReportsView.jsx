@@ -25,7 +25,9 @@ export default function ReportsView() {
   const merchantPerf = merchants.map(m => ({
     ...m,
     shipCount: shipments.filter(s => s.merchantId === m.id).length,
-    revenue: shipments.filter(s => s.merchantId === m.id && s.status === 'Delivered').reduce((sum, s) => sum + ((s.price || 0) - (s.deliveryFee || 0) - (s.codFee || 0)), 0),
+    revenue: shipments
+      .filter(s => s.merchantId === m.id && (s.status === 'Delivered' || s.status === 'تم التسليم'))
+      .reduce((sum, s) => sum + Math.max(0, Number(s.price || 0) - Number(s.deliveryFee || 0) - Number(s.codFee || 0)), 0),
   })).sort((a, b) => b.revenue - a.revenue);
 
   // Status breakdown

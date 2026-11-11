@@ -439,8 +439,8 @@ export default function DriversManager() {
                   <td style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--text-tertiary)' }} dir="ltr">{s.id}</td>
                   <td style={{ fontWeight: 700 }}>{s.driverName}</td>
                   <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{s.note || '—'}</td>
-                  <td style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{s.date.toLocaleDateString()}</td>
-                  <td style={{ fontWeight: 800, color: '#10B981' }} dir="ltr">+{s.amount.toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</td>
+                  <td style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{s.date ? new Date(s.date).toLocaleDateString() : ''}</td>
+                  <td style={{ fontWeight: 800, color: '#10B981' }} dir="ltr">+{Number(s.amount || 0).toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</td>
                   <td>
                     <span style={{ padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: 'rgba(16,185,129,0.1)', color: '#10B981' }}>
                       {isAr ? 'مُسوَّى' : 'Settled'}
@@ -667,9 +667,9 @@ export default function DriversManager() {
                         <td style={{ fontWeight: 700, color: 'var(--accent-blue)' }}>{s.trackingNumber}</td>
                         <td>{s.receiverName} <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', direction: 'ltr' }}>{s.receiverPhone}</div></td>
                         <td>{s.receiverCity}</td>
-                        <td style={{ fontWeight: 800, color: '#10B981' }} dir="ltr">{s.price + s.deliveryFee + s.codFee} {isAr ? 'د.ل' : 'LYD'}</td>
+                        <td style={{ fontWeight: 800, color: '#10B981' }} dir="ltr">{s.price} {isAr ? 'د.ل' : 'LYD'}</td>
                         <td>
-                           <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, background: s.status === 'Delivered' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', color: s.status === 'Delivered' ? '#10B981' : '#F59E0B' }}>
+                           <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, background: (s.status === 'Delivered' || s.status === 'تم التسليم') ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', color: (s.status === 'Delivered' || s.status === 'تم التسليم') ? '#10B981' : '#F59E0B' }}>
                              {s.status}
                            </span>
                         </td>
@@ -695,7 +695,7 @@ export default function DriversManager() {
                     {settlements.filter(s => s.driverId === driverProfileModal.id).map(s => (
                       <tr key={s.id}>
                         <td>{s.id}</td>
-                        <td>{s.date.toLocaleDateString()} {s.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                        <td>{s.date ? `${new Date(s.date).toLocaleDateString()} ${new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}</td>
                         <td style={{ fontWeight: 800, color: '#10B981' }} dir="ltr">+{Number(s.amount || 0).toLocaleString()} {isAr ? 'د.ل' : 'LYD'}</td>
                         <td style={{ color: 'var(--text-secondary)' }}>{s.note || '—'}</td>
                       </tr>
@@ -752,7 +752,7 @@ export default function DriversManager() {
                 {settlements.filter(s => s.driverId === driverProfileModal.id).map(s => (
                   <tr key={s.id}>
                     <td>{s.id}</td>
-                    <td>{s.date.toLocaleDateString()} {s.date.toLocaleTimeString()}</td>
+                    <td>{s.date ? `${new Date(s.date).toLocaleDateString()} ${new Date(s.date).toLocaleTimeString()}` : ''}</td>
                     <td dir="ltr" style={{ fontWeight: 'bold' }}>+{Number(s.amount || 0).toLocaleString()} د.ل</td>
                     <td>{s.note || '—'}</td>
                   </tr>
@@ -780,7 +780,7 @@ export default function DriversManager() {
                     <td>{s.trackingNumber}</td>
                     <td>{s.receiverName} - <span dir="ltr">{s.receiverPhone}</span></td>
                     <td>{s.receiverCity}</td>
-                    <td dir="ltr" style={{ fontWeight: 'bold' }}>{s.price + s.deliveryFee + s.codFee} د.ل</td>
+                    <td dir="ltr" style={{ fontWeight: 'bold' }}>{s.price} د.ل</td>
                     <td>{s.status}</td>
                   </tr>
                 ))}
@@ -814,7 +814,7 @@ export default function DriversManager() {
                   <tr key={s.id}>
                     <td>{s.id}</td>
                     <td>{s.driverName}</td>
-                    <td>{s.date.toLocaleDateString()}</td>
+                    <td>{s.date ? new Date(s.date).toLocaleDateString() : ''}</td>
                     <td dir="ltr" style={{ fontWeight: 'bold' }}>{Number(s.amount || 0).toLocaleString()} د.ل</td>
                     <td>{s.note || '—'}</td>
                   </tr>

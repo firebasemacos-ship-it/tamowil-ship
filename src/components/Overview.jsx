@@ -78,9 +78,9 @@ export default function Overview() {
     {
       titleAr: 'إيرادات الشحن الصافية',
       titleEn: 'Shipping Revenue',
-      value: fmt(stats.totalRevenue),
-      subAr: 'من رسوم التوصيل والـ COD',
-      subEn: 'from delivery & service fees',
+      value: fmt(stats.netCompanyProfits ?? stats.totalRevenue ?? 0),
+      subAr: 'صافي عمولات الشركة (COD)',
+      subEn: 'net company service fees',
       color: '#10B981',
       shadowRgb: '16, 185, 129',
       icon: (
@@ -205,7 +205,7 @@ export default function Overview() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', gap: '8px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary-color)' }}>{log.trackingNumber}</span>
                     <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }} dir="ltr">
-                      {log.timestamp.getHours()}:{log.timestamp.getMinutes().toString().padStart(2, '0')}
+                      {log.timestamp ? `${new Date(log.timestamp).getHours()}:${new Date(log.timestamp).getMinutes().toString().padStart(2, '0')}` : ''}
                     </span>
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>

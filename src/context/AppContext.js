@@ -300,7 +300,8 @@ export function AppProvider({ children }) {
   const filteredTickets = tickets.filter(t => isWithinFilter(t.created_at || t.createdAt || t.date));
 
   // Compute stats dynamically based on filtered data
-  const deliveredShipments = filteredShipments.filter(s => s.status === 'Delivered' || s.status === 'تم التوصيل');
+  const deliveredShipments = filteredShipments.filter(s => s.status === 'Delivered' || s.status === 'تم التسليم' || s.status === 'تم التوصيل');
+  const netCompanyProfitsVal = deliveredShipments.reduce((sum, s) => sum + Number(s.cod_fee || s.codFee || 0), 0);
   const computedStats = {
     total: filteredShipments.length,
     delivered: deliveredShipments.length,
@@ -310,7 +311,8 @@ export function AppProvider({ children }) {
     returned: filteredShipments.filter(s => s.status === 'Returned' || s.status === 'مرتجع').length,
     totalCodCollected: deliveredShipments.reduce((sum, s) => sum + Number(s.price || 0), 0),
     grossProfits: deliveredShipments.reduce((sum, s) => sum + Number(s.delivery_fee || s.deliveryFee || 0) + Number(s.cod_fee || s.codFee || 0), 0),
-    netCompanyProfits: deliveredShipments.reduce((sum, s) => sum + Number(s.cod_fee || s.codFee || 0), 0),
+    netCompanyProfits: netCompanyProfitsVal,
+    totalRevenue: netCompanyProfitsVal,
     pendingPayouts: filteredPayouts.filter(p => p.status === 'Pending').reduce((sum, p) => sum + Number(p.amount || 0), 0),
     totalMerchantBalance: dashboardStats.totalMerchantBalance, // keep global
     driversPendingSettlement: dashboardStats.driversPendingSettlement, // keep global
