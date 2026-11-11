@@ -16,9 +16,15 @@ export function AppProvider({ children }) {
   const [branches, setBranches] = useState([]);
   const [activeBranchFilter, setActiveBranchFilter] = useState('MAIN');
 
-  // Restore Auth Session
+  // Restore Auth Session & Purge Legacy Trial Storage Keys
   useEffect(() => {
-    const savedUser = localStorage.getItem('vanex_current_user');
+    localStorage.removeItem('vanex_current_user');
+    localStorage.removeItem('vanex_admin_data');
+    localStorage.removeItem('vanex_admin_password');
+    localStorage.removeItem('vanex_branches_meta_v1');
+    localStorage.removeItem('vanex_admin_users');
+
+    const savedUser = localStorage.getItem('vanex_current_user_prod_v1');
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
       setCurrentUser(parsed);
@@ -29,15 +35,14 @@ export function AppProvider({ children }) {
   }, []);
 
   const getAdminData = () => {
-    const savedAdmin = localStorage.getItem('vanex_admin_data');
+    const savedAdmin = localStorage.getItem('vanex_admin_data_prod_v1');
     if (savedAdmin) return JSON.parse(savedAdmin);
-    
-    const oldPw = localStorage.getItem('vanex_admin_password');
+
     return {
       id: 'admin',
       name: 'المدير العام',
-      phone: 'admin',
-      password: oldPw || 'admin',
+      phone: 'admin@tamowil.ly',
+      password: '0920064400',
       role: 'super_admin',
       branchId: 'MAIN',
       permissions: ['all']
@@ -50,18 +55,20 @@ export function AppProvider({ children }) {
       db.getBranches()
     ]);
     const adminData = getAdminData();
+    const cleanInputUser = String(phone || '').trim().toLowerCase();
+    const cleanAdminUser = String(adminData.phone || '').trim().toLowerCase();
     
-    if (phone === adminData.phone && password === adminData.password) {
+    if (cleanInputUser === cleanAdminUser && String(password || '') === String(adminData.password || '')) {
       const superUser = { ...adminData, role: 'super_admin', branchId: 'MAIN' };
       setCurrentUser(superUser);
       setActiveBranchFilter('MAIN');
-      localStorage.setItem('vanex_current_user', JSON.stringify(superUser));
+      localStorage.setItem('vanex_current_user_prod_v1', JSON.stringify(superUser));
       return { success: true };
     }
 
     // Check Branch Admin credentials
     const matchedBranch = (branchList || []).find(
-      b => String(b.adminPhone || '').trim() === String(phone || '').trim() && String(b.adminPassword || '') === String(password || '')
+      b => String(b.adminPhone || '').trim().toLowerCase() === cleanInputUser && String(b.adminPassword || '') === String(password || '')
     );
     if (matchedBranch) {
       if (matchedBranch.active === false) {
@@ -79,11 +86,11 @@ export function AppProvider({ children }) {
       };
       setCurrentUser(branchAdminUser);
       setActiveBranchFilter(matchedBranch.id);
-      localStorage.setItem('vanex_current_user', JSON.stringify(branchAdminUser));
+      localStorage.setItem('vanex_current_user_prod_v1', JSON.stringify(branchAdminUser));
       return { success: true };
     }
 
-    const emp = emps.find(e => e.phone === phone && e.password === password);
+    const emp = emps.find(e => String(e.phone || '').trim().toLowerCase() === cleanInputUser && String(e.password || '') === String(password || ''));
     if (emp) {
       if (emp.isActive === false) {
         return { success: false, message: 'هذا الحساب موقوف، يرجى مراجعة إدارة النظام' };
@@ -91,7 +98,7 @@ export function AppProvider({ children }) {
       const empUser = { ...emp, branchId: emp.branchId || 'MAIN' };
       setCurrentUser(empUser);
       setActiveBranchFilter(empUser.branchId);
-      localStorage.setItem('vanex_current_user', JSON.stringify(empUser));
+      localStorage.setItem('vanex_current_user_prod_v1', JSON.stringify(empUser));
       return { success: true };
     }
     return { success: false, message: 'بيانات الدخول غير صحيحة' };
@@ -100,18 +107,17 @@ export function AppProvider({ children }) {
   const updateAdminData = (newData) => {
     const currentAdmin = getAdminData();
     const updated = { ...currentAdmin, ...newData };
-    localStorage.setItem('vanex_admin_data', JSON.stringify(updated));
-    localStorage.removeItem('vanex_admin_password');
+    localStorage.setItem('vanex_admin_data_prod_v1', JSON.stringify(updated));
     
     if (currentUser?.id === 'admin') {
       setCurrentUser(updated);
-      localStorage.setItem('vanex_current_user', JSON.stringify(updated));
+      localStorage.setItem('vanex_current_user_prod_v1', JSON.stringify(updated));
     }
   };
 
   const logout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('vanex_current_user');
+    localStorage.removeItem('vanex_current_user_prod_v1');
   };
 
   // Date Filter State

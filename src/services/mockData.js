@@ -12,43 +12,10 @@ export function isSenderPaid(chargeOn) {
 }
 
 // ─── Multi-Branch Isolation & Meta Sync Engine ────────────────
-const BRANCHES_STORAGE_KEY = 'vanex_branches_meta_v1';
+const BRANCHES_STORAGE_KEY = 'vanex_branches_meta_prod_v1';
 const META_SAFE_ID = 'SYS-BRANCHES-META';
 
-const DEFAULT_BRANCHES = [
-  {
-    id: 'BR-TRIPOLI',
-    name: 'فرع طرابلس',
-    code: 'TIP-01',
-    city: 'طرابلس',
-    address: 'طرابلس - المركز الميداني',
-    phone: '0910001111',
-    adminName: 'مدير فرع طرابلس',
-    adminPhone: 'tripoli',
-    adminPassword: '123',
-    mainSafeId: 'SAFE-002',
-    custodySafeId: 'SAFE-CUST-BR-TRIPOLI',
-    active: true,
-    permissions: ['overview', 'shipments', 'wallet', 'drivers', 'merchants', 'tickets', 'reports', 'safes', 'employees', 'logs'],
-    createdAt: '2026-08-01T00:00:00.000Z'
-  },
-  {
-    id: 'BR-BENGHAZI',
-    name: 'فرع بنغازي',
-    code: 'BEN-01',
-    city: 'بنغازي',
-    address: 'بنغازي - حي الفويهات',
-    phone: '0920002222',
-    adminName: 'مدير فرع بنغازي',
-    adminPhone: 'benghazi',
-    adminPassword: '123',
-    mainSafeId: 'SAFE-003',
-    custodySafeId: 'SAFE-CUST-BR-BENGHAZI',
-    active: true,
-    permissions: ['overview', 'shipments', 'wallet', 'drivers', 'merchants', 'tickets', 'reports', 'safes', 'employees', 'logs'],
-    createdAt: '2026-08-01T00:00:00.000Z'
-  }
-];
+const DEFAULT_BRANCHES = [];
 
 const DEFAULT_META = {
   branches: DEFAULT_BRANCHES,
@@ -59,12 +26,7 @@ const DEFAULT_META = {
     employees: {},
     safes: {
       'SAFE-001': 'MAIN',
-      'SAFE-005': 'MAIN',
-      'SAFE-004': 'MAIN',
-      'SAFE-002': 'BR-TRIPOLI',
-      'SAFE-CUST-BR-TRIPOLI': 'BR-TRIPOLI',
-      'SAFE-003': 'BR-BENGHAZI',
-      'SAFE-CUST-BR-BENGHAZI': 'BR-BENGHAZI'
+      'SAFE-005': 'MAIN'
     }
   }
 };
@@ -1326,7 +1288,7 @@ export async function getDashboardStats() {
 
 // ─── Employees / Admin Users (Local Storage Mock) ─────────────
 
-const ADMIN_STORAGE_KEY = 'vanex_admin_users';
+const ADMIN_STORAGE_KEY = 'vanex_admin_users_prod_v1';
 
 export async function getEmployees() {
   if (typeof window === 'undefined') return [];
@@ -1368,10 +1330,7 @@ export async function deleteEmployee(id) {
 // ─── Safes / Treasury System (100% Supabase Database Direct) ─────────
 const DEFAULT_SAFES = [
   { id: 'SAFE-001', name: 'الخزينة الرئيسية (المركز)', code: 'SAFE-MAIN', branch: 'المركز الرئيسي', initialBalance: 0, balance: 0, active: true, notes: 'خزينة السيولة النقدية الرئيسية في المقر' },
-  { id: 'SAFE-005', name: 'خزينة عُهد السائقين (العهد الميدانية)', code: 'SAFE-DRIVERS', branch: 'ميداني / السائقين', initialBalance: 0, balance: 0, active: true, notes: 'إجمالي المبالغ النقدية المتداولة كـ عُهد مع السائقين قبل التسوية' },
-  { id: 'SAFE-002', name: 'خزينة فرع طرابلس', code: 'SAFE-TRIPOLI', branch: 'طرابلس', initialBalance: 0, balance: 0, active: true, notes: 'خزينة استلام العهد اليومية' },
-  { id: 'SAFE-003', name: 'خزينة فرع بنغازي', code: 'SAFE-BEN', branch: 'بنغازي', initialBalance: 0, balance: 0, active: true, notes: 'خزينة التوصيل والتسويات' },
-  { id: 'SAFE-004', name: 'حساب المصرف / سداد', code: 'BANK-SADAD', branch: 'إلكتروني', initialBalance: 0, balance: 0, active: true, notes: 'حساب التحويلات المصرفية والسداد الإلكتروني' }
+  { id: 'SAFE-005', name: 'خزينة عُهد السائقين (العهد الميدانية)', code: 'SAFE-DRIVERS', branch: 'ميداني / السائقين', initialBalance: 0, balance: 0, active: true, notes: 'إجمالي المبالغ النقدية المتداولة كـ عُهد مع السائقين قبل التسوية' }
 ];
 
 export async function getSafeTransactions() {

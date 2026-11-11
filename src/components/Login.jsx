@@ -177,7 +177,7 @@ export default function Login() {
 
             <div className="pro-field-group">
               <label htmlFor="login-username" className="pro-field-label">
-                اسم المستخدم / رقم الهاتف
+                البريد الإلكتروني / اسم المستخدم
               </label>
               <div className="pro-input-wrapper">
                 <span className="pro-input-icon" aria-hidden="true">
@@ -197,7 +197,7 @@ export default function Login() {
                   enterKeyHint="next"
                   required
                   className="pro-input"
-                  placeholder="أدخل اسم المستخدم أو رقم الهاتف"
+                  placeholder="أدخل البريد الإلكتروني أو اسم المستخدم"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   dir="ltr"
