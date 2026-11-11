@@ -7,8 +7,6 @@ export default function Login() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showQuickAccounts, setShowQuickAccounts] = useState(false);
-  const [portalRole, setPortalRole] = useState('super'); // 'super' | 'branch' | 'staff'
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -17,7 +15,7 @@ export default function Login() {
     setError('');
 
     if (!phone || !password) {
-      setError('يرجى إدخال اسم المستخدم (أو رقم الهاتف) وكلمة المرور');
+      setError('يرجى إدخال اسم المستخدم وكلمة المرور');
       return;
     }
 
@@ -28,36 +26,6 @@ export default function Login() {
     }
     setLoading(false);
   };
-
-  const handleQuickSelect = (roleKey, userVal, passVal) => {
-    setPortalRole(roleKey);
-    setPhone(userVal);
-    setPassword(passVal);
-    setError('');
-  };
-
-  const roleConfig = {
-    super: {
-      label: 'المدير العام (المركز)',
-      badge: 'صلاحيات كاملة للنظام الرئيسي والفروع',
-      userPlaceholder: 'أدخل اسم مستخدم الإدارة العامة (admin)',
-      accent: '#10B981'
-    },
-    branch: {
-      label: 'مدير فرع مستقل',
-      badge: 'بيئة عمل وخزائن وتسويات خاصة بالفرع',
-      userPlaceholder: 'أدخل معرف الفرع أو رقم الهاتف (مثال: tripoli)',
-      accent: '#6366F1'
-    },
-    staff: {
-      label: 'موظف عمليات',
-      badge: 'صلاحيات مخصصة حسب التكليف الإداري',
-      userPlaceholder: 'أدخل رقم الهاتف المسجل للموظف',
-      accent: '#06B6D4'
-    }
-  };
-
-  const activeConfig = roleConfig[portalRole] || roleConfig.super;
 
   return (
     <div className="pro-login-page" dir="rtl">
@@ -119,7 +87,7 @@ export default function Login() {
                 </div>
                 <div>
                   <h3>نظام فروع مستقلة بمعزل كامل</h3>
-                  <p>لكل فرع حساب أدمن خاص به، خزائنه، مستخدموه، وشحناته المنفصلة عن المركز الرئيسي مع إشراف مركزي شامل.</p>
+                  <p>لكل فرع حساب إدارة خاص به، خزائنه، مستخدموه، وشحناته المنفصلة عن المركز الرئيسي مع إشراف مركزي شامل.</p>
                 </div>
               </div>
 
@@ -130,7 +98,7 @@ export default function Login() {
                   </svg>
                 </div>
                 <div>
-                  <h3>تتبع لحظي وسجل تدقيق شامل (Audit Trail)</h3>
+                  <h3>تتبع لحظي وسجل تدقيق شامل</h3>
                   <p>مراقبة فورية لحالات الشحنات، الكشوفات، المينفيست، وسجل العمليات البرمجي والمحاسبي.</p>
                 </div>
               </div>
@@ -148,15 +116,14 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Left Column: Authentication Form Panel */}
+        {/* Left Column: Clean Authentication Form Panel */}
         <div className="pro-auth-panel">
           {/* Top Utility Row */}
           <div className="pro-auth-topbar">
             <div className="pro-auth-portal-tag">
               <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                <polyline points="10 17 15 12 10 7" />
-                <line x1="15" y1="12" x2="3" y2="12" />
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
               <span>بوابة الدخول الموحدة</span>
             </div>
@@ -191,59 +158,8 @@ export default function Login() {
           </div>
 
           <div className="pro-auth-header">
-            <h2 className="pro-auth-title">تسجيل الدخول إلى النظام</h2>
-            <p className="pro-auth-subtitle">أدخل بيانات الاعتماد الخاصة بك للوصول إلى لوحة التحكم</p>
-          </div>
-
-          {/* Role Mode Selector Tabs */}
-          <div className="pro-role-tabs" role="tablist" aria-label="نوع الحساب">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={portalRole === 'super'}
-              onClick={() => setPortalRole('super')}
-              className={`pro-role-tab ${portalRole === 'super' ? 'active' : ''}`}
-            >
-              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
-              <span>المدير العام</span>
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              aria-selected={portalRole === 'branch'}
-              onClick={() => setPortalRole('branch')}
-              className={`pro-role-tab ${portalRole === 'branch' ? 'active' : ''}`}
-            >
-              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
-                <path d="M9 22v-4h6v4" />
-                <path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01" />
-              </svg>
-              <span>أدمن فرع</span>
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              aria-selected={portalRole === 'staff'}
-              onClick={() => setPortalRole('staff')}
-              className={`pro-role-tab ${portalRole === 'staff' ? 'active' : ''}`}
-            >
-              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              <span>موظف</span>
-            </button>
-          </div>
-
-          {/* Active Mode Context Banner */}
-          <div className="pro-role-context" style={{ borderColor: `${activeConfig.accent}33`, background: `${activeConfig.accent}10` }}>
-            <span className="pro-role-dot" style={{ background: activeConfig.accent }} />
-            <span className="pro-role-context-text">{activeConfig.badge}</span>
+            <h2 className="pro-auth-title">تسجيل الدخول</h2>
+            <p className="pro-auth-subtitle">أدخل اسم المستخدم وكلمة المرور للوصول إلى لوحة التحكم</p>
           </div>
 
           {/* Sign-In Form */}
@@ -261,7 +177,7 @@ export default function Login() {
 
             <div className="pro-field-group">
               <label htmlFor="login-username" className="pro-field-label">
-                اسم المستخدم أو رقم الهاتف
+                اسم المستخدم / رقم الهاتف
               </label>
               <div className="pro-input-wrapper">
                 <span className="pro-input-icon" aria-hidden="true">
@@ -281,7 +197,7 @@ export default function Login() {
                   enterKeyHint="next"
                   required
                   className="pro-input"
-                  placeholder={activeConfig.userPlaceholder}
+                  placeholder="أدخل اسم المستخدم أو رقم الهاتف"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   dir="ltr"
@@ -290,12 +206,9 @@ export default function Login() {
             </div>
 
             <div className="pro-field-group">
-              <div className="pro-label-row">
-                <label htmlFor="login-password" className="pro-field-label">
-                  كلمة المرور
-                </label>
-                <span className="pro-field-hint">حساسة لحالة الأحرف</span>
-              </div>
+              <label htmlFor="login-password" className="pro-field-label">
+                كلمة المرور
+              </label>
               <div className="pro-input-wrapper">
                 <span className="pro-input-icon" aria-hidden="true">
                   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -311,7 +224,7 @@ export default function Login() {
                   enterKeyHint="done"
                   required
                   className="pro-input pro-input-password"
-                  placeholder="••••••••"
+                  placeholder="أدخل كلمة المرور"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   dir="ltr"
@@ -350,7 +263,7 @@ export default function Login() {
                 </>
               ) : (
                 <>
-                  <span>تسجيل الدخول إلى النظام</span>
+                  <span>تسجيل الدخول</span>
                   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                     <line x1="19" y1="12" x2="5" y2="12" />
                     <polyline points="12 19 5 12 12 5" />
@@ -360,62 +273,11 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Quick Access Accounts Bar (Collapsible) */}
-          <div className="pro-quick-access">
-            <button
-              type="button"
-              onClick={() => setShowQuickAccounts(prev => !prev)}
-              className="pro-quick-toggle"
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                </svg>
-                <span>الدخول السريع للحسابات المعتمدة (المركز والفروع)</span>
-              </span>
-              <svg
-                width="14"
-                height="14"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                viewBox="0 0 24 24"
-                style={{ transform: showQuickAccounts ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-
-            {showQuickAccounts && (
-              <div className="pro-quick-pills">
-                <button
-                  type="button"
-                  onClick={() => handleQuickSelect('super', 'admin', 'admin')}
-                  className={`pro-quick-pill ${phone === 'admin' ? 'selected' : ''}`}
-                >
-                  <span className="pro-pill-dot" style={{ background: '#10B981' }} />
-                  <span>المدير العام (المركز)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickSelect('branch', 'tripoli', '123')}
-                  className={`pro-quick-pill ${phone === 'tripoli' ? 'selected' : ''}`}
-                >
-                  <span className="pro-pill-dot" style={{ background: '#6366F1' }} />
-                  <span>أدمن فرع طرابلس</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickSelect('branch', 'benghazi', '123')}
-                  className={`pro-quick-pill ${phone === 'benghazi' ? 'selected' : ''}`}
-                >
-                  <span className="pro-pill-dot" style={{ background: '#8B5CF6' }} />
-                  <span>أدمن فرع بنغازي</span>
-                </button>
-              </div>
-            )}
+          <div className="pro-auth-footer-note">
+            <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span>يتم توجيهك تلقائياً إلى النظام المخصص لحسابك فور التحقق من بيانات الدخول.</span>
           </div>
         </div>
       </div>
@@ -486,8 +348,8 @@ export default function Login() {
           position: relative;
           z-index: 1;
           width: 100%;
-          max-width: 1120px;
-          min-height: 640px;
+          max-width: 1060px;
+          min-height: 600px;
           display: grid;
           grid-template-columns: 1.08fr 0.92fr;
           border-radius: 28px;
@@ -633,7 +495,7 @@ export default function Login() {
 
         /* ── Left Auth Form Panel ── */
         .pro-auth-panel {
-          padding: 42px 44px;
+          padding: 48px 46px;
           display: flex;
           flex-direction: column;
           justify-content: center;
@@ -644,14 +506,14 @@ export default function Login() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 24px;
+          margin-bottom: 32px;
         }
 
         .pro-auth-portal-tag {
           display: inline-flex;
           align-items: center;
           gap: 7px;
-          padding: 5px 12px;
+          padding: 6px 13px;
           border-radius: 10px;
           font-size: 12px;
           font-weight: 800;
@@ -680,90 +542,29 @@ export default function Login() {
         }
 
         .pro-auth-header {
-          margin-bottom: 20px;
+          margin-bottom: 28px;
         }
 
         .pro-auth-title {
-          font-size: 24px;
+          font-size: 26px;
           font-weight: 900;
           color: var(--text-primary);
-          margin: 0 0 6px 0;
+          margin: 0 0 8px 0;
           letter-spacing: -0.3px;
         }
 
         .pro-auth-subtitle {
-          font-size: 13.5px;
+          font-size: 14px;
           color: var(--text-secondary);
           margin: 0;
-        }
-
-        /* ── Role Selector Tabs ── */
-        .pro-role-tabs {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 8px;
-          padding: 5px;
-          border-radius: 14px;
-          background: rgba(128, 128, 128, 0.08);
-          border: 1px solid var(--glass-border);
-          margin-bottom: 12px;
-        }
-
-        .pro-role-tab {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          padding: 9px 10px;
-          border-radius: 10px;
-          border: none;
-          background: transparent;
-          color: var(--text-secondary);
-          font-size: 12.5px;
-          font-weight: 800;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .pro-role-tab:hover {
-          color: var(--text-primary);
-        }
-
-        .pro-role-tab.active {
-          background: var(--card-bg);
-          color: var(--text-primary);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          border: 1px solid var(--glass-border);
-        }
-
-        .pro-role-context {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 14px;
-          border-radius: 11px;
-          border: 1px solid;
-          margin-bottom: 20px;
-        }
-
-        .pro-role-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          flex-shrink: 0;
-        }
-
-        .pro-role-context-text {
-          font-size: 12px;
-          font-weight: 700;
-          color: var(--text-secondary);
+          line-height: 1.6;
         }
 
         /* ── Form Fields ── */
         .pro-auth-form {
           display: flex;
           flex-direction: column;
-          gap: 18px;
+          gap: 20px;
         }
 
         .pro-auth-error {
@@ -782,25 +583,13 @@ export default function Login() {
         .pro-field-group {
           display: flex;
           flex-direction: column;
-          gap: 8px;
-        }
-
-        .pro-label-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
+          gap: 9px;
         }
 
         .pro-field-label {
-          font-size: 13px;
+          font-size: 13.5px;
           font-weight: 800;
           color: var(--text-primary);
-        }
-
-        .pro-field-hint {
-          font-size: 11px;
-          color: var(--text-tertiary);
-          font-weight: 600;
         }
 
         .pro-input-wrapper {
@@ -811,7 +600,7 @@ export default function Login() {
 
         .pro-input-icon {
           position: absolute;
-          right: 14px;
+          right: 15px;
           color: var(--text-tertiary);
           display: inline-flex;
           align-items: center;
@@ -821,25 +610,26 @@ export default function Login() {
 
         .pro-input {
           width: 100%;
-          height: 48px;
-          padding: 10px 44px 10px 16px;
+          height: 50px;
+          padding: 10px 46px 10px 16px;
           border-radius: 14px;
           background: rgba(128, 128, 128, 0.07);
           border: 1px solid var(--glass-border);
           color: var(--text-primary);
-          font-size: 14px;
+          font-size: 14.5px;
           font-weight: 600;
           transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
         }
 
         .pro-input-password {
-          padding-left: 44px;
+          padding-left: 46px;
         }
 
         .pro-input::placeholder {
           color: var(--text-tertiary);
           font-weight: 500;
           font-size: 13px;
+          text-align: right;
         }
 
         .pro-input:focus {
@@ -867,8 +657,8 @@ export default function Login() {
         .pro-pw-toggle {
           position: absolute;
           left: 12px;
-          width: 32px;
-          height: 32px;
+          width: 34px;
+          height: 34px;
           border-radius: 9px;
           border: none;
           background: transparent;
@@ -886,14 +676,14 @@ export default function Login() {
         }
 
         .pro-submit-btn {
-          margin-top: 6px;
-          height: 50px;
+          margin-top: 8px;
+          height: 52px;
           width: 100%;
           border-radius: 14px;
           border: none;
           background: linear-gradient(135deg, #10B981 0%, #059669 100%);
           color: #FFFFFF;
-          font-size: 15px;
+          font-size: 15.5px;
           font-weight: 800;
           display: inline-flex;
           align-items: center;
@@ -927,85 +717,29 @@ export default function Login() {
           to { transform: rotate(360deg); }
         }
 
-        /* ── Quick Demo Credentials Bar ── */
-        .pro-quick-access {
-          margin-top: 24px;
-          padding-top: 18px;
+        .pro-auth-footer-note {
+          margin-top: 28px;
+          padding-top: 20px;
           border-top: 1px solid var(--glass-border);
-        }
-
-        .pro-quick-toggle {
-          width: 100%;
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          padding: 8px 12px;
-          border-radius: 10px;
-          border: 1px dashed var(--glass-border);
-          background: transparent;
-          font-size: 12px;
-          font-weight: 700;
-          color: var(--text-secondary);
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .pro-quick-toggle:hover {
-          color: var(--text-primary);
-          border-color: rgba(16, 185, 129, 0.35);
-          background: rgba(128, 128, 128, 0.05);
-        }
-
-        .pro-quick-pills {
-          display: flex;
-          flex-wrap: wrap;
           gap: 8px;
-          margin-top: 10px;
-        }
-
-        .pro-quick-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
-          padding: 7px 12px;
-          border-radius: 10px;
-          font-size: 11.5px;
-          font-weight: 700;
-          color: var(--text-secondary);
-          background: rgba(128, 128, 128, 0.07);
-          border: 1px solid var(--glass-border);
-          cursor: pointer;
-          transition: all 0.18s ease;
-        }
-
-        .pro-quick-pill:hover {
-          color: var(--text-primary);
-          border-color: rgba(16, 185, 129, 0.35);
-          background: rgba(16, 185, 129, 0.08);
-        }
-
-        .pro-quick-pill.selected {
-          color: var(--text-primary);
-          border-color: #10B981;
-          background: rgba(16, 185, 129, 0.12);
-        }
-
-        .pro-pill-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-tertiary);
+          line-height: 1.5;
         }
 
         @media (max-width: 920px) {
           .pro-login-shell {
             grid-template-columns: 1fr;
-            max-width: 500px;
+            max-width: 480px;
           }
           .pro-showcase-panel {
             display: none;
           }
           .pro-auth-panel {
-            padding: 32px 26px;
+            padding: 36px 28px;
           }
         }
       `}</style>
