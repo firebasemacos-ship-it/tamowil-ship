@@ -243,17 +243,29 @@ export default function Overview() {
             <div style={{
               padding: '16px 18px', borderRadius: '14px', background: 'rgba(239,68,68,0.08)',
               border: '1px solid rgba(239,68,68,0.25)', marginBottom: '24px', fontSize: '13px',
-              color: 'var(--text-primary)', lineHeight: 1.6
+              color: 'var(--text-primary)', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '8px'
             }}>
               {isAr ? (
                 <>
-                  ⚠️ <b>تنبيه هام جداً:</b> سيتم حذف جميع الشحنات، المعاملات المالية، طلبات السحب، وتسويات المندوبين، وتصفير جميع الخزائن إلى <b>0.00 د.ل</b> بشكل نهائي.<br/>
-                  ✅ <b>الحسابات المحتفظ بها:</b> حسابات المتاجر والمندوبين والموظفين ستبقى مسجلة ونشطة في النظام.
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                    <svg width="16" height="16" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: '3px' }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span><b>تنبيه هام جداً:</b> سيتم حذف جميع الشحنات، المعاملات المالية، طلبات السحب، وتسويات المندوبين، وتصفير جميع الخزائن إلى <b>0.00 د.ل</b> بشكل نهائي.</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                    <svg width="16" height="16" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: '3px' }}><polyline points="20 6 9 17 4 12"/></svg>
+                    <span><b>الحسابات المحتفظ بها:</b> حسابات المتاجر والمندوبين والموظفين ستبقى مسجلة ونشطة في النظام.</span>
+                  </div>
                 </>
               ) : (
                 <>
-                  ⚠️ <b>WARNING:</b> This will permanently delete all shipments, transactions, payouts, and driver settlements, and zero out all safes to <b>0.00 LYD</b>.<br/>
-                  ✅ <b>Retained Data:</b> Merchant, driver, and employee accounts will remain active.
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                    <svg width="16" height="16" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: '3px' }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span><b>WARNING:</b> This will permanently delete all shipments, transactions, payouts, and driver settlements, and zero out all safes to <b>0.00 LYD</b>.</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                    <svg width="16" height="16" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: '3px' }}><polyline points="20 6 9 17 4 12"/></svg>
+                    <span><b>Retained Data:</b> Merchant, driver, and employee accounts will remain active.</span>
+                  </div>
                 </>
               )}
             </div>

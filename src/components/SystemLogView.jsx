@@ -154,17 +154,17 @@ export default function SystemLogView() {
   const formatFullLogForAI = () => {
     const timestampStr = new Date().toLocaleString('ar-LY');
     let output = `==================================================\n`;
-    output += `📟 SYSTEM AUDIT DIAGNOSTIC LOG (تم الإنشاء: ${timestampStr})\n`;
+    output += `SYSTEM AUDIT DIAGNOSTIC LOG (تم الإنشاء: ${timestampStr})\n`;
     output += `==================================================\n\n`;
 
-    output += `📊 SYSTEM SUMMARY:\n`;
+    output += `SYSTEM SUMMARY:\n`;
     output += `- Total Log Entries: ${systemLogs.length}\n`;
     output += `- Safes Liquidity Summary:\n`;
     (safes || []).forEach(s => {
       output += `  • [${s.id}] ${s.name} (${s.branch || 'المركز'}): ${Number(s.balance || 0).toFixed(2)} LYD\n`;
     });
     output += `\n==================================================\n`;
-    output += `📜 DETAILED AUDIT EVENT CHRONOLOGY:\n`;
+    output += `DETAILED AUDIT EVENT CHRONOLOGY:\n`;
     output += `==================================================\n\n`;
 
     filteredLogs.forEach((log, index) => {
@@ -237,14 +237,14 @@ export default function SystemLogView() {
             {copied ? (
               <>
                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                {isAr ? 'تم نسخ السجل الكامل للحافظة! 📋' : 'Copied for AI! 📋'}
+                {isAr ? 'تم نسخ السجل الكامل للحافظة!' : 'Copied for AI!'}
               </>
             ) : (
               <>
                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
                 </svg>
-                {isAr ? '📋 نسخ السجل بالكامل للـ AI (عند حدوث مشكلة)' : '📋 Copy All Logs for AI'}
+                {isAr ? 'نسخ السجل بالكامل للـ AI (عند حدوث مشكلة)' : 'Copy All Logs for AI'}
               </>
             )}
           </button>
@@ -268,11 +268,11 @@ export default function SystemLogView() {
       {/* ── 2. FILTERS & LIVE SEARCH ── */}
       <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
         {/* Search */}
-        <div style={{ flex: 1, minWidth: '260px' }}>
+        <div style={{ flex: 1, minWidth: '260px', position: 'relative' }}>
           <input
             type="text"
             className="glass-input w-full"
-            placeholder={isAr ? '🔍 ابحث برقم الشحنة، المرجع، اسم السائق، المأخذ أو البيان...' : '🔍 Search tracking #, ref, driver, description...'}
+            placeholder={isAr ? 'ابحث برقم الشحنة، المرجع، اسم السائق، المأخذ أو البيان...' : 'Search tracking #, ref, driver, description...'}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
@@ -281,11 +281,23 @@ export default function SystemLogView() {
         {/* Category Pills */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {[
-            { id: 'ALL', ar: 'الكل', en: 'All Logs' },
-            { id: 'SAFE', ar: '💰 الخزائن والأموال', en: 'Safe Txs' },
-            { id: 'SETTLEMENT', ar: '🔄 تسويات المندوبين', en: 'Driver Settlements' },
-            { id: 'PAYOUT', ar: '💸 مسحوبات التجار', en: 'Merchant Payouts' },
-            { id: 'SHIPMENT', ar: '📦 الشحنات والحالات', en: 'Shipment Events' },
+            { id: 'ALL', ar: 'الكل', en: 'All Logs', icon: null },
+            {
+              id: 'SAFE', ar: 'الخزائن والأموال', en: 'Safe Txs',
+              icon: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            },
+            {
+              id: 'SETTLEMENT', ar: 'تسويات المندوبين', en: 'Driver Settlements',
+              icon: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            },
+            {
+              id: 'PAYOUT', ar: 'مسحوبات التجار', en: 'Merchant Payouts',
+              icon: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            },
+            {
+              id: 'SHIPMENT', ar: 'الشحنات والحالات', en: 'Shipment Events',
+              icon: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            },
           ].map(cat => (
             <button
               key={cat.id}
@@ -293,9 +305,11 @@ export default function SystemLogView() {
               style={{
                 padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', border: 'none',
                 background: selectedCategory === cat.id ? 'var(--primary-color)' : 'rgba(128,128,128,0.08)',
-                color: selectedCategory === cat.id ? '#fff' : 'var(--text-secondary)', transition: 'all 0.2s'
+                color: selectedCategory === cat.id ? '#fff' : 'var(--text-secondary)', transition: 'all 0.2s',
+                display: 'inline-flex', alignItems: 'center', gap: '6px'
               }}
             >
+              {cat.icon}
               {isAr ? cat.ar : cat.en}
             </button>
           ))}

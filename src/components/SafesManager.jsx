@@ -308,10 +308,10 @@ export default function SafesManager() {
               />
               <select className="glass-input" style={{ padding: '8px 14px', fontSize: '12px', borderRadius: '12px' }} value={detailTypeFilter} onChange={e => setDetailTypeFilter(e.target.value)}>
                 <option value="ALL">{isAr ? 'جميع المعاملات' : 'All Types'}</option>
-                <option value="deposit">{isAr ? '➕ إيداع مالي' : 'Deposit'}</option>
-                <option value="withdrawal">{isAr ? '➖ صرف مالي' : 'Withdrawal'}</option>
-                <option value="transfer_in">{isAr ? '📥 تحويل وارد' : 'Transfer In'}</option>
-                <option value="transfer_out">{isAr ? '📤 تحويل صادر' : 'Transfer Out'}</option>
+                <option value="deposit">{isAr ? 'إيداع مالي (+)' : 'Deposit (+)'}</option>
+                <option value="withdrawal">{isAr ? 'صرف مالي (-)' : 'Withdrawal (-)'}</option>
+                <option value="transfer_in">{isAr ? 'تحويل وارد' : 'Transfer In'}</option>
+                <option value="transfer_out">{isAr ? 'تحويل صادر' : 'Transfer Out'}</option>
               </select>
             </div>
           </div>
@@ -566,9 +566,11 @@ export default function SafesManager() {
 
                   <span style={{
                     padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800,
-                    background: 'rgba(16,185,129,0.12)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)'
+                    background: 'rgba(16,185,129,0.12)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)',
+                    display: 'inline-flex', alignItems: 'center', gap: '6px'
                   }}>
-                    {isAr ? 'نشطة 🟢' : 'Active 🟢'}
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+                    {isAr ? 'نشطة' : 'Active'}
                   </span>
                 </div>
 

@@ -1466,7 +1466,11 @@ export default function ShipmentsTable() {
             <table className="print-table">
               <thead>
                 <tr>
-                  <th style={{ width: '40px', textAlign: 'center' }}>☑</th>
+                  <th style={{ width: '40px', textAlign: 'center' }}>
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ display: 'inline-block' }}>
+                      <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                    </svg>
+                  </th>
                   <th>رقم التتبع</th>
                   <th>المرسل</th>
                   <th>المستلم</th>
@@ -1521,7 +1525,9 @@ export default function ShipmentsTable() {
                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 {isAr ? 'تحديث حالة الشحنات الجماعية' : 'Bulk Shipment Status Update'}
               </h2>
-              <button onClick={() => setShowBulkStatusModal(false)} className="text-gray-400 hover:text-white" style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setShowBulkStatusModal(false)} className="text-gray-400 hover:text-white" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1586,7 +1592,9 @@ export default function ShipmentsTable() {
                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
                 {isAr ? 'إضافة حالة شحنة مخصصة جديدة' : 'Add Custom Shipment Status'}
               </h2>
-              <button onClick={() => setShowAddCustomStatusModal(false)} className="text-gray-400 hover:text-white" style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setShowAddCustomStatusModal(false)} className="text-gray-400 hover:text-white" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

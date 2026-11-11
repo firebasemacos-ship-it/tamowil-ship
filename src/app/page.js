@@ -109,17 +109,24 @@ export default function AdminPage() {
             border: '1px solid rgba(99,102,241,0.4)',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px'
           }}>
-            <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' }}>
-              🏢 أنت تتصفح الآن البيانات المعزولة الخاصة بـ: <span style={{ color: '#10B981' }}>{activeBranchObj.name}</span> (جميع الأقسام تعرض معاملات هذا الفرع فقط)
+            <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/>
+              </svg>
+              <span>أنت تتصفح الآن البيانات المعزولة الخاصة بـ: <span style={{ color: '#10B981' }}>{activeBranchObj.name}</span> (جميع الأقسام تعرض معاملات هذا الفرع فقط)</span>
             </div>
             <button
               onClick={() => setActiveBranchFilter('MAIN')}
               style={{
                 padding: '7px 16px', borderRadius: '10px', border: 'none',
-                background: '#F59E0B', color: '#fff', fontWeight: 800, fontSize: '12px', cursor: 'pointer'
+                background: '#F59E0B', color: '#fff', fontWeight: 800, fontSize: '12px', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: '6px'
               }}
             >
-              ↩ العودة لنظامك الرئيسي المستقل (المركز)
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/>
+              </svg>
+              العودة لنظامك الرئيسي المستقل (المركز)
             </button>
           </div>
         )}
@@ -129,8 +136,11 @@ export default function AdminPage() {
             background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center'
           }}>
-            <span style={{ fontSize: '12px', fontWeight: 800, color: '#10B981' }}>
-              🏢 نظام الفرع المستقل: {currentUser.branchName} ({currentUser.city})
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/>
+              </svg>
+              نظام الفرع المستقل: {currentUser.branchName} ({currentUser.city})
             </span>
             <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
               بيئة عمل وتسويات وخزائن خاصة بالفرع

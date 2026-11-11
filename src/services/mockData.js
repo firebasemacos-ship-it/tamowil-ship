@@ -802,7 +802,7 @@ export async function toggleUserVerification(id) {
           formattedNumber = '218' + cleanNumber;
         }
 
-        const msgText = `🎉 مرحباً *${m.store_name}*، تم تفعيل حسابك بنجاح من قبل الإدارة! يمكنك الآن تسجيل الدخول إلى لوحة التحكم واستخدام التطبيق.\n\nHello *${m.store_name}*, your account has been successfully approved and activated by the administration! You can now log in to the dashboard and start using the app.`;
+        const msgText = `مرحباً *${m.store_name}*، تم تفعيل حسابك بنجاح من قبل الإدارة! يمكنك الآن تسجيل الدخول إلى لوحة التحكم واستخدام التطبيق.\n\nHello *${m.store_name}*, your account has been successfully approved and activated by the administration! You can now log in to the dashboard and start using the app.`;
 
         await fetch('https://expensive-michelle-huwiyyaa-4d991118.koyeb.app/message/sendText/tamowil', {
           method: 'POST',

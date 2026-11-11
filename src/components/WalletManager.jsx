@@ -3,14 +3,6 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import AnimatedCounter from './AnimatedCounter';
 
-// ── Status Color Palette & Arabic Labels ──────────────────────────────────────
-const S_COLOR = {
-  Pending:  { bg: 'rgba(251,191,36,0.14)',  text: '#FBBF24', border: 'rgba(251,191,36,0.3)',  icon: '⏳' },
-  Approved: { bg: 'rgba(16,185,129,0.14)',  text: '#10B981', border: 'rgba(16,185,129,0.3)',  icon: '✅' },
-  Rejected: { bg: 'rgba(239,68,68,0.14)',   text: '#EF4444', border: 'rgba(239,68,68,0.3)',   icon: '❌' },
-};
-const S_AR = { Pending: 'بانتظار الموافقة', Approved: 'تمت الموافقة', Rejected: 'مرفوض' };
-
 // ── SVG Icons ──────────────────────────────────────────────────────────────────
 const Svg = ({ children, size = 18, ...p }) => (
   <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2"
@@ -20,7 +12,9 @@ const Svg = ({ children, size = 18, ...p }) => (
 const Icon = {
   wallet:    <Svg><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></Svg>,
   clock:     <Svg><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Svg>,
+  clockSm:   <Svg size={13}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Svg>,
   check:     <Svg><polyline points="20 6 9 17 4 12"/></Svg>,
+  checkSm:   <Svg size={13}><polyline points="20 6 9 17 4 12"/></Svg>,
   store:     <Svg><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Svg>,
   bank:      <Svg><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></Svg>,
   list:      <Svg><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></Svg>,
@@ -35,6 +29,14 @@ const Icon = {
   safe:      <Svg><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></Svg>,
   shield:    <Svg><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></Svg>
 };
+
+// ── Status Color Palette & Arabic Labels ──────────────────────────────────────
+const S_COLOR = {
+  Pending:  { bg: 'rgba(251,191,36,0.14)',  text: '#FBBF24', border: 'rgba(251,191,36,0.3)',  icon: Icon.clockSm },
+  Approved: { bg: 'rgba(16,185,129,0.14)',  text: '#10B981', border: 'rgba(16,185,129,0.3)',  icon: Icon.checkSm },
+  Rejected: { bg: 'rgba(239,68,68,0.14)',   text: '#EF4444', border: 'rgba(239,68,68,0.3)',   icon: Icon.x },
+};
+const S_AR = { Pending: 'بانتظار الموافقة', Approved: 'تمت الموافقة', Rejected: 'مرفوض' };
 
 // ── Badge Component ────────────────────────────────────────────────────────────
 const Badge = ({ status, isAr }) => (
@@ -162,14 +164,14 @@ export default function WalletManager() {
     if (cooldownTime > 0) return;
     setConfirmId(null);
     setCooldownTime(60);
-    setToastMsg(isAr ? '⏳ جاري اعتماد طلب السحب وصرف النقدية...' : 'Processing payout...');
+    setToastMsg({ type: 'pending', text: isAr ? 'جاري اعتماد طلب السحب وصرف النقدية...' : 'Processing payout...' });
 
     try {
       await approvePayoutRequest(id, (selectedSafeId && selectedSafeId !== 'SAFE-001') ? selectedSafeId : (mainSafe?.id || 'SAFE-001'));
-      setToastMsg(isAr ? '✅ تم اعتماد طلب السحب وتوفير الكاش بنجاح!' : 'Payout approved successfully!');
+      setToastMsg({ type: 'success', text: isAr ? 'تم اعتماد طلب السحب وتوفير الكاش بنجاح!' : 'Payout approved successfully!' });
       setTimeout(() => setToastMsg(null), 5000);
     } catch (err) {
-      setToastMsg(isAr ? `❌ تعذر اعتماد السحب: ${err.message || 'رصيد الخزينة غير كافٍ'}` : `Error: ${err.message}`);
+      setToastMsg({ type: 'error', text: isAr ? `تعذر اعتماد السحب: ${err.message || 'رصيد الخزينة غير كافٍ'}` : `Error: ${err.message}` });
       setTimeout(() => setToastMsg(null), 6000);
     }
   }
@@ -194,14 +196,14 @@ export default function WalletManager() {
     setCooldownTime(60);
 
     // 3. Display instant feedback toast
-    setToastMsg(isAr ? '⏳ جاري تنفيذ التسوية المالية وإقفال المستحقات...' : 'Executing settlement...');
+    setToastMsg({ type: 'pending', text: isAr ? 'جاري تنفيذ التسوية المالية وإقفال المستحقات...' : 'Executing settlement...' });
 
     try {
       await manualCredit(targetForm.merchantId, targetForm.amount, targetForm.description, targetForm.type || 'payout', (targetForm.safeId && targetForm.safeId !== 'SAFE-001') ? targetForm.safeId : (mainSafe?.id || 'SAFE-001'));
-      setToastMsg(isAr ? '✅ تم إتمام التسوية المالية بنجاح!' : 'Settlement executed successfully!');
+      setToastMsg({ type: 'success', text: isAr ? 'تم إتمام التسوية المالية بنجاح!' : 'Settlement executed successfully!' });
       setTimeout(() => setToastMsg(null), 5000);
     } catch (err) {
-      setToastMsg(isAr ? `❌ تعذر إتمام التسوية: ${err.message || 'رصيد الخزينة المحددة غير كافٍ'}` : `Failed: ${err.message}`);
+      setToastMsg({ type: 'error', text: isAr ? `تعذر إتمام التسوية: ${err.message || 'رصيد الخزينة المحددة غير كافٍ'}` : `Failed: ${err.message}` });
       setTimeout(() => setToastMsg(null), 6000);
     }
   }
@@ -238,11 +240,12 @@ export default function WalletManager() {
         <div style={{
           position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 99999,
           padding: '14px 28px', borderRadius: '16px', fontWeight: 800, fontSize: '14px',
-          background: toastMsg.includes('❌') ? 'rgba(239,68,68,0.95)' : (toastMsg.includes('⏳') ? 'rgba(251,191,36,0.95)' : 'rgba(16,185,129,0.95)'),
+          background: toastMsg.type === 'error' ? 'rgba(239,68,68,0.95)' : (toastMsg.type === 'pending' ? 'rgba(251,191,36,0.95)' : 'rgba(16,185,129,0.95)'),
           color: '#fff', boxShadow: '0 10px 30px rgba(0,0,0,0.35)', backdropFilter: 'blur(12px)',
           display: 'flex', alignItems: 'center', gap: '10px'
         }}>
-          {toastMsg}
+          {toastMsg.type === 'error' ? Icon.x : (toastMsg.type === 'pending' ? Icon.clock : Icon.check)}
+          <span>{toastMsg.text || toastMsg}</span>
         </div>
       )}
 
@@ -554,7 +557,7 @@ export default function WalletManager() {
                     <div>
                       <div style={{ fontWeight: 900, fontSize: '16px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span>{m.storeName}</span>
-                        {m.verified && <span style={{ fontSize: '12px', color: '#10B981' }}>✓</span>}
+                        {m.verified && <span style={{ display: 'inline-flex', alignItems: 'center', color: '#10B981' }}>{Icon.checkSm}</span>}
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
                         {m.name || m.ownerName} • {m.phone}
@@ -825,9 +828,9 @@ export default function WalletManager() {
                   {isAr ? 'نوع التسوية المالية' : 'Settlement Type'}
                 </label>
                 <select className="glass-input" value={manualForm.type} onChange={e => setManualForm(p => ({ ...p, type: e.target.value }))} style={{ borderRadius: '12px' }}>
-                  <option value="payout">{isAr ? '💸 تسوية وصرف أرباح التاجر (خصم كاش من الخزينة للتاجر)' : '💸 Merchant Payout (Cash Out from Safe)'}</option>
-                  <option value="credit">{isAr ? '➕ إيداع / شحن رصيد للمحفظة' : '➕ Credit Deposit'}</option>
-                  <option value="debit">{isAr ? '📥 خصم / تحصيل نقدي من التاجر إلى الخزينة' : '📥 Debit Cash Collection (Deposit to Safe)'}</option>
+                  <option value="payout">{isAr ? 'تسوية وصرف أرباح التاجر (خصم كاش من الخزينة للتاجر)' : 'Merchant Payout (Cash Out from Safe)'}</option>
+                  <option value="credit">{isAr ? 'إيداع / شحن رصيد للمحفظة' : 'Credit Deposit'}</option>
+                  <option value="debit">{isAr ? 'خصم / تحصيل نقدي من التاجر إلى الخزينة' : 'Debit Cash Collection (Deposit to Safe)'}</option>
                 </select>
               </div>
 

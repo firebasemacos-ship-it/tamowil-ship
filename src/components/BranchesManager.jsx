@@ -2,6 +2,35 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 
+const Svg = ({ children, size = 16, ...p }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ flexShrink: 0 }} {...p}>{children}</svg>
+);
+
+const Icon = {
+  building: <Svg size={20}><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></Svg>,
+  buildingSm: <Svg size={16}><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></Svg>,
+  shield: <Svg size={14}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></Svg>,
+  external: <Svg size={15}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></Svg>,
+  undo: <Svg size={15}><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></Svg>,
+  edit: <Svg size={15}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></Svg>,
+  trash: <Svg size={15}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Svg>,
+  pause: <Svg size={15}><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></Svg>,
+  play: <Svg size={15}><polygon points="5 3 19 12 5 21 5 3"/></Svg>,
+  search: <Svg size={15}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></Svg>,
+  pin: <Svg size={13}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Svg>,
+  lock: <Svg size={15}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></Svg>,
+  wallet: <Svg size={15}><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></Svg>,
+  box: <Svg size={15}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></Svg>,
+  settlement: <Svg size={15}><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></Svg>,
+  users: <Svg size={15}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Svg>,
+  store: <Svg size={16}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Svg>,
+  truck: <Svg size={16}><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></Svg>,
+  userShield: <Svg size={16}><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></Svg>,
+  check: <Svg size={15}><polyline points="20 6 9 17 4 12"/></Svg>,
+  dot: (color) => <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />
+};
+
 const PERM_OPTIONS = [
   { id: 'overview', ar: 'الإحصائيات العامة', en: 'Overview' },
   { id: 'shipments', ar: 'إدارة الشحنات', en: 'Shipments' },
@@ -237,15 +266,17 @@ export default function BranchesManager() {
             </button>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <h1 style={{ fontWeight: 900, fontSize: '22px', color: 'var(--text-primary)', margin: 0 }}>
-                  🏢 {b.name}
+                <h1 style={{ fontWeight: 900, fontSize: '22px', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {Icon.building} {b.name}
                 </h1>
                 <span style={{
                   padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800,
                   background: b.active !== false ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
-                  color: b.active !== false ? '#10B981' : '#EF4444'
+                  color: b.active !== false ? '#10B981' : '#EF4444',
+                  display: 'inline-flex', alignItems: 'center', gap: '6px'
                 }}>
-                  {b.active !== false ? (isAr ? 'فرع نشط 🟢' : 'Active') : (isAr ? 'فرع موقوف 🔴' : 'Suspended')}
+                  {Icon.dot(b.active !== false ? '#10B981' : '#EF4444')}
+                  {b.active !== false ? (isAr ? 'فرع نشط' : 'Active') : (isAr ? 'فرع موقوف' : 'Suspended')}
                 </span>
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
@@ -265,32 +296,36 @@ export default function BranchesManager() {
                   ? 'linear-gradient(135deg, #10B981, #059669)'
                   : 'linear-gradient(135deg, #6366F1, #4F46E5)',
                 color: '#fff', fontWeight: 800, fontSize: '12px', cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(99,102,241,0.35)'
+                boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
+                display: 'inline-flex', alignItems: 'center', gap: '7px'
               }}
             >
+              {activeBranchFilter === b.id ? Icon.check : Icon.external}
               {activeBranchFilter === b.id
-                ? (isAr ? '✓ أنت تتصفح النظام بوضع هذا الفرع حالياً' : 'Currently Active Workspace')
-                : (isAr ? '🚀 فتح لوحة التحكم الكاملة بوضع هذا الفرع' : 'Enter Full Branch Workspace')}
+                ? (isAr ? 'أنت تتصفح النظام بوضع هذا الفرع حالياً' : 'Currently Active Workspace')
+                : (isAr ? 'فتح لوحة التحكم الكاملة بوضع هذا الفرع' : 'Enter Full Branch Workspace')}
             </button>
             {activeBranchFilter !== 'MAIN' && (
               <button
                 onClick={() => setActiveBranchFilter('MAIN')}
                 style={{
                   padding: '10px 16px', borderRadius: '12px', border: '1px solid rgba(245,158,11,0.4)',
-                  background: 'rgba(245,158,11,0.12)', color: '#F59E0B', fontWeight: 800, fontSize: '12px', cursor: 'pointer'
+                  background: 'rgba(245,158,11,0.12)', color: '#F59E0B', fontWeight: 800, fontSize: '12px', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: '6px'
                 }}
               >
-                {isAr ? '↩ العودة للنظام الرئيسي المستقل (المركز)' : 'Return to Main HQ'}
+                {Icon.undo} {isAr ? 'العودة للنظام الرئيسي المستقل (المركز)' : 'Return to Main HQ'}
               </button>
             )}
             <button
               onClick={() => openEditModal(b)}
               style={{
                 padding: '10px 16px', borderRadius: '12px', border: '1px solid var(--card-border)',
-                background: 'rgba(128,128,128,0.1)', color: 'var(--text-primary)', fontWeight: 800, fontSize: '12px', cursor: 'pointer'
+                background: 'rgba(128,128,128,0.1)', color: 'var(--text-primary)', fontWeight: 800, fontSize: '12px', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: '6px'
               }}
             >
-              ✏️ {isAr ? 'تعديل الفرع' : 'Edit Branch'}
+              {Icon.edit} {isAr ? 'تعديل الفرع' : 'Edit Branch'}
             </button>
           </div>
         </div>
@@ -339,11 +374,11 @@ export default function BranchesManager() {
         {/* Inspector Sub-Navigation Tabs */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {[
-            { id: 'financials', ar: `💰 الخزائن والمعاملات المالية (${b.safeTransactions.length})`, en: 'Safes & Financials' },
-            { id: 'shipments', ar: `📦 شحنات الفرع (${b.shipments.length})`, en: 'Branch Shipments' },
-            { id: 'settlements', ar: `🤝 التسويات والمدفوعات (${b.settlements.length + b.payouts.length})`, en: 'Settlements & Payouts' },
-            { id: 'users', ar: `👥 مستخدمو الفرع (${b.merchants.length + b.drivers.length + b.employees.length})`, en: 'Branch Users' },
-            { id: 'admin', ar: '🔐 بيانات دخول أدمن الفرع', en: 'Branch Admin Account' }
+            { id: 'financials', icon: Icon.wallet, ar: `الخزائن والمعاملات المالية (${b.safeTransactions.length})`, en: 'Safes & Financials' },
+            { id: 'shipments', icon: Icon.box, ar: `شحنات الفرع (${b.shipments.length})`, en: 'Branch Shipments' },
+            { id: 'settlements', icon: Icon.settlement, ar: `التسويات والمدفوعات (${b.settlements.length + b.payouts.length})`, en: 'Settlements & Payouts' },
+            { id: 'users', icon: Icon.users, ar: `مستخدمو الفرع (${b.merchants.length + b.drivers.length + b.employees.length})`, en: 'Branch Users' },
+            { id: 'admin', icon: Icon.lock, ar: 'بيانات دخول أدمن الفرع', en: 'Branch Admin Account' }
           ].map(t => (
             <button
               key={t.id}
@@ -353,10 +388,11 @@ export default function BranchesManager() {
                 fontWeight: 800, fontSize: '13px',
                 background: inspectorTab === t.id ? 'linear-gradient(135deg, #6366F1, #4F46E5)' : 'rgba(128,128,128,0.1)',
                 color: inspectorTab === t.id ? '#fff' : 'var(--text-secondary)',
-                boxShadow: inspectorTab === t.id ? '0 4px 16px rgba(99,102,241,0.3)' : 'none'
+                boxShadow: inspectorTab === t.id ? '0 4px 16px rgba(99,102,241,0.3)' : 'none',
+                display: 'inline-flex', alignItems: 'center', gap: '8px'
               }}
             >
-              {isAr ? t.ar : t.en}
+              {t.icon} {isAr ? t.ar : t.en}
             </button>
           ))}
         </div>
@@ -569,8 +605,8 @@ export default function BranchesManager() {
             {/* 1. Branch Merchants */}
             <div className="glass-card" style={{ padding: '20px', borderRadius: '18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-                <h3 style={{ margin: 0, fontWeight: 800, fontSize: '15px' }}>
-                  🏪 {isAr ? `تجار ومتاجر ${b.name} (${b.merchants.length})` : 'Branch Merchants'}
+                <h3 style={{ margin: 0, fontWeight: 800, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {Icon.store} {isAr ? `تجار ومتاجر ${b.name} (${b.merchants.length})` : 'Branch Merchants'}
                 </h3>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <select
@@ -651,8 +687,8 @@ export default function BranchesManager() {
             {/* 2. Branch Drivers */}
             <div className="glass-card" style={{ padding: '20px', borderRadius: '18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-                <h3 style={{ margin: 0, fontWeight: 800, fontSize: '15px' }}>
-                  🚚 {isAr ? `سائقو ومناديب ${b.name} (${b.drivers.length})` : 'Branch Drivers'}
+                <h3 style={{ margin: 0, fontWeight: 800, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {Icon.truck} {isAr ? `سائقو ومناديب ${b.name} (${b.drivers.length})` : 'Branch Drivers'}
                 </h3>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <select
@@ -736,8 +772,8 @@ export default function BranchesManager() {
             {/* 3. Branch Employees */}
             <div className="glass-card" style={{ padding: '20px', borderRadius: '18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ margin: 0, fontWeight: 800, fontSize: '15px' }}>
-                  👨‍💼 {isAr ? `موظفو إدارة ${b.name} (${b.employees.length})` : 'Branch Employees'}
+                <h3 style={{ margin: 0, fontWeight: 800, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {Icon.userShield} {isAr ? `موظفو إدارة ${b.name} (${b.employees.length})` : 'Branch Employees'}
                 </h3>
                 <button
                   onClick={() => setShowAddBranchEmp(true)}
@@ -765,7 +801,12 @@ export default function BranchesManager() {
                       <td style={{ fontWeight: 800 }}>{emp.name}</td>
                       <td dir="ltr">{emp.phone}</td>
                       <td dir="ltr">{emp.password}</td>
-                      <td>{emp.isActive !== false ? 'نشط 🟢' : 'موقوف 🔴'}</td>
+                      <td>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: emp.isActive !== false ? '#10B981' : '#EF4444' }}>
+                          {Icon.dot(emp.isActive !== false ? '#10B981' : '#EF4444')}
+                          {emp.isActive !== false ? 'نشط' : 'موقوف'}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                   {b.employees.length === 0 && (
@@ -780,8 +821,8 @@ export default function BranchesManager() {
         {/* ── TAB 5: BRANCH ADMIN CREDENTIALS ── */}
         {inspectorTab === 'admin' && (
           <div className="glass-card" style={{ padding: '28px', borderRadius: '20px', maxWidth: '640px' }}>
-            <h3 style={{ margin: '0 0 16px', fontWeight: 900, fontSize: '17px' }}>
-              🔐 {isAr ? `بيانات دخول حساب الأدمن الخاص بـ ${b.name}` : 'Dedicated Branch Admin Credentials'}
+            <h3 style={{ margin: '0 0 16px', fontWeight: 900, fontSize: '17px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {Icon.lock} {isAr ? `بيانات دخول حساب الأدمن الخاص بـ ${b.name}` : 'Dedicated Branch Admin Credentials'}
             </h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.6 }}>
               {isAr
@@ -806,8 +847,8 @@ export default function BranchesManager() {
                 <div style={{ fontSize: '13px', fontWeight: 800, marginTop: '4px' }}>{(b.permissions || []).length} {isAr ? 'أقسام' : 'modules'}</div>
               </div>
             </div>
-            <button onClick={() => openEditModal(b)} className="glass-button">
-              ✏️ {isAr ? 'تعديل بيانات حساب مدير الفرع والصلاحيات' : 'Edit Branch Admin Credentials'}
+            <button onClick={() => openEditModal(b)} className="glass-button" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              {Icon.edit} {isAr ? 'تعديل بيانات حساب مدير الفرع والصلاحيات' : 'Edit Branch Admin Credentials'}
             </button>
           </div>
         )}
@@ -925,15 +966,16 @@ export default function BranchesManager() {
         border: '1px solid rgba(99,102,241,0.25)'
       }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 style={{ fontWeight: 900, fontSize: '23px', color: 'var(--text-primary)', margin: 0 }}>
-              🏢 {isAr ? 'إدارة الفروع والأنظمة المستقلة' : 'Independent Branches Management'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontWeight: 900, fontSize: '23px', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {Icon.building} {isAr ? 'إدارة الفروع والأنظمة المستقلة' : 'Independent Branches Management'}
             </h1>
             <span style={{
               padding: '4px 12px', borderRadius: '99px', fontSize: '11px', fontWeight: 800,
-              background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)'
+              background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)',
+              display: 'inline-flex', alignItems: 'center', gap: '6px'
             }}>
-              {isAr ? 'نظامك الرئيسي معزول 100% عن الفروع 🛡️' : 'Main HQ 100% Isolated'}
+              {Icon.shield} {isAr ? 'نظامك الرئيسي معزول 100% عن الفروع' : 'Main HQ 100% Isolated'}
             </span>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '6px 0 0' }}>
@@ -949,10 +991,11 @@ export default function BranchesManager() {
               onClick={() => setActiveBranchFilter('MAIN')}
               style={{
                 padding: '12px 18px', borderRadius: '14px', border: '1px solid rgba(245,158,11,0.4)',
-                background: 'rgba(245,158,11,0.15)', color: '#F59E0B', fontWeight: 800, fontSize: '13px', cursor: 'pointer'
+                background: 'rgba(245,158,11,0.15)', color: '#F59E0B', fontWeight: 800, fontSize: '13px', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: '6px'
               }}
             >
-              ↩ {isAr ? 'العودة لنظامك الرئيسي المستقل (المركز)' : 'Return to Main HQ System'}
+              {Icon.undo} {isAr ? 'العودة لنظامك الرئيسي المستقل (المركز)' : 'Return to Main HQ System'}
             </button>
           )}
           <button
@@ -1023,23 +1066,27 @@ export default function BranchesManager() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontWeight: 900, fontSize: '18px', color: 'var(--text-primary)' }}>🏢 {b.name}</span>
+                  <span style={{ fontWeight: 900, fontSize: '18px', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    {Icon.buildingSm} {b.name}
+                  </span>
                   <span style={{
                     padding: '3px 9px', borderRadius: '8px', fontSize: '11px', fontWeight: 800,
                     background: 'rgba(99,102,241,0.12)', color: '#6366F1'
                   }}>{b.code}</span>
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                  📍 {b.city} {b.address ? `— ${b.address}` : ''}
+                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  {Icon.pin} {b.city} {b.address ? `— ${b.address}` : ''}
                 </div>
               </div>
 
               <span style={{
                 padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800,
                 background: b.active !== false ? 'rgba(16,185,129,0.14)' : 'rgba(239,68,68,0.14)',
-                color: b.active !== false ? '#10B981' : '#EF4444'
+                color: b.active !== false ? '#10B981' : '#EF4444',
+                display: 'inline-flex', alignItems: 'center', gap: '6px'
               }}>
-                {b.active !== false ? (isAr ? 'نشط 🟢' : 'Active') : (isAr ? 'موقوف 🔴' : 'Suspended')}
+                {Icon.dot(b.active !== false ? '#10B981' : '#EF4444')}
+                {b.active !== false ? (isAr ? 'نشط' : 'Active') : (isAr ? 'موقوف' : 'Suspended')}
               </span>
             </div>
 
@@ -1050,8 +1097,8 @@ export default function BranchesManager() {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px'
             }}>
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 700 }}>
-                  🔐 {isAr ? 'حساب أدمن الفرع:' : 'Branch Admin:'} <strong style={{ color: 'var(--text-primary)' }}>{b.adminName}</strong>
+                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {Icon.lock} {isAr ? 'حساب أدمن الفرع:' : 'Branch Admin:'} <strong style={{ color: 'var(--text-primary)' }}>{b.adminName}</strong>
                 </div>
                 <div style={{ fontSize: '12px', marginTop: '4px', display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <span>{isAr ? 'الدخول:' : 'Login:'} <strong style={{ color: '#6366F1' }} dir="ltr">{b.adminPhone}</strong></span>
@@ -1087,11 +1134,11 @@ export default function BranchesManager() {
             </div>
 
             {/* Counts Row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', padding: '0 4px' }}>
-              <span>📦 {isAr ? 'الشحنات:' : 'Shipments:'} <strong>{b.shipments.length}</strong></span>
-              <span>🏪 {isAr ? 'التجار:' : 'Merchants:'} <strong>{b.merchants.length}</strong></span>
-              <span>🚚 {isAr ? 'السائقون:' : 'Drivers:'} <strong>{b.drivers.length}</strong></span>
-              <span>🤝 {isAr ? 'التسويات:' : 'Settlements:'} <strong>{b.settlements.length}</strong></span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', padding: '0 4px', flexWrap: 'wrap', gap: '8px' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>{Icon.box} {isAr ? 'الشحنات:' : 'Shipments:'} <strong>{b.shipments.length}</strong></span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>{Icon.store} {isAr ? 'التجار:' : 'Merchants:'} <strong>{b.merchants.length}</strong></span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>{Icon.truck} {isAr ? 'السائقون:' : 'Drivers:'} <strong>{b.drivers.length}</strong></span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>{Icon.settlement} {isAr ? 'التسويات:' : 'Settlements:'} <strong>{b.settlements.length}</strong></span>
             </div>
 
             {/* Action Buttons */}
@@ -1104,21 +1151,23 @@ export default function BranchesManager() {
                 style={{
                   flex: 2, padding: '10px 14px', borderRadius: '12px', border: 'none',
                   background: 'linear-gradient(135deg, #6366F1, #4F46E5)', color: '#fff',
-                  fontWeight: 800, fontSize: '12px', cursor: 'pointer'
+                  fontWeight: 800, fontSize: '12px', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px'
                 }}
               >
-                🔍 {isAr ? 'استعراض تفاصيل ومعاملات الفرع' : 'Inspect Details & Transactions'}
+                {Icon.search} {isAr ? 'استعراض تفاصيل ومعاملات الفرع' : 'Inspect Details & Transactions'}
               </button>
 
               <button
                 onClick={() => openEditModal(b)}
                 style={{
                   padding: '10px 12px', borderRadius: '12px', border: '1px solid var(--card-border)',
-                  background: 'rgba(128,128,128,0.1)', color: 'var(--text-primary)', fontWeight: 800, fontSize: '12px', cursor: 'pointer'
+                  background: 'rgba(128,128,128,0.1)', color: 'var(--text-primary)', fontWeight: 800, fontSize: '12px', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center'
                 }}
                 title={isAr ? 'تعديل بيانات الفرع وحساب المدير' : 'Edit Branch'}
               >
-                ✏️
+                {Icon.edit}
               </button>
 
               <button
@@ -1127,11 +1176,12 @@ export default function BranchesManager() {
                   padding: '10px 12px', borderRadius: '12px', border: '1px solid var(--card-border)',
                   background: b.active !== false ? 'rgba(245,158,11,0.12)' : 'rgba(16,185,129,0.12)',
                   color: b.active !== false ? '#F59E0B' : '#10B981',
-                  fontWeight: 800, fontSize: '12px', cursor: 'pointer'
+                  fontWeight: 800, fontSize: '12px', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center'
                 }}
                 title={b.active !== false ? (isAr ? 'إيقاف الفرع' : 'Suspend') : (isAr ? 'تفعيل الفرع' : 'Activate')}
               >
-                {b.active !== false ? '⏸️' : '▶️'}
+                {b.active !== false ? Icon.pause : Icon.play}
               </button>
 
               <button
@@ -1142,11 +1192,12 @@ export default function BranchesManager() {
                 }}
                 style={{
                   padding: '10px 12px', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.3)',
-                  background: 'rgba(239,68,68,0.1)', color: '#EF4444', fontWeight: 800, fontSize: '12px', cursor: 'pointer'
+                  background: 'rgba(239,68,68,0.1)', color: '#EF4444', fontWeight: 800, fontSize: '12px', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center'
                 }}
                 title={isAr ? 'حذف الفرع' : 'Delete Branch'}
               >
-                🗑️
+                {Icon.trash}
               </button>
             </div>
           </div>
@@ -1193,8 +1244,8 @@ export default function BranchesManager() {
               </div>
 
               <div style={{ padding: '16px', borderRadius: '14px', background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.25)' }}>
-                <div style={{ fontWeight: 800, fontSize: '13px', color: '#6366F1', marginBottom: '12px' }}>
-                  🔐 {isAr ? 'بيانات حساب أدمن الفرع (لتسجيل الدخول المستقل للفرع)' : 'Branch Admin Login Account'}
+                <div style={{ fontWeight: 800, fontSize: '13px', color: '#6366F1', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {Icon.lock} {isAr ? 'بيانات حساب أدمن الفرع (لتسجيل الدخول المستقل للفرع)' : 'Branch Admin Login Account'}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                   <div>
