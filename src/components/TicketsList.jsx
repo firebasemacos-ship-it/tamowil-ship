@@ -129,7 +129,7 @@ export default function TicketsList() {
                   <span className="text-[10px]" style={{ color: 'var(--primary-color)' }}>{ticket.userStore}</span>
                 </div>
                 <div className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>
-                  {ticket.timestamp.toLocaleDateString()}
+                  {ticket.timestamp ? new Date(ticket.timestamp).toLocaleDateString() : ''}
                 </div>
               </div>
             ))}

@@ -491,9 +491,17 @@ export async function getPayoutRequests() {
   }));
 }
 
+const inFlightPayouts = new Set();
+const inFlightManualCredits = new Set();
+const inFlightSettlements = new Set();
+
 export async function approvePayoutRequest(id, safeId = 'SAFE-001') {
+  if (inFlightPayouts.has(id)) return getPayoutRequests();
+  inFlightPayouts.add(id);
+  try {
   const { data: p } = await supabase.from('payout_requests').select('*').eq('id', id).single();
   if (!p) throw new Error('طلب السحب غير موجود.');
+  if (p.status === 'Approved') return getPayoutRequests();
   
   const amtVal = Number(p.amount || 0);
   if (safeId) {
@@ -531,6 +539,9 @@ export async function approvePayoutRequest(id, safeId = 'SAFE-001') {
   }
 
   return getPayoutRequests();
+  } finally {
+    inFlightPayouts.delete(id);
+  }
 }
 
 export async function rejectPayoutRequest(id) {
@@ -564,6 +575,11 @@ export async function manualCredit(merchantId, amount, description, type = 'payo
   const amtVal = Math.abs(Number(amount || 0));
   if (amtVal <= 0) throw new Error('المبلغ يجب أن يكون أكبر من صفر');
 
+  const lockKey = `${merchantId}_${type}_${amtVal}`;
+  if (inFlightManualCredits.has(lockKey)) return getTransactionLog();
+  inFlightManualCredits.add(lockKey);
+
+  try {
   const safes = await getSafes();
   const safeObj = safes.find(s => s.id === safeId);
 
@@ -624,6 +640,9 @@ export async function manualCredit(merchantId, amount, description, type = 'payo
   }
 
   return getTransactionLog();
+  } finally {
+    inFlightManualCredits.delete(lockKey);
+  }
 }
 
 // ─── Drivers ─────────────────────────────────────────────────
@@ -705,51 +724,62 @@ export async function editDriver(id, updatedData) {
 }
 
 export async function settleDriver(driverId, amount, note, safeId = 'SAFE-001') {
-  const { data: d } = await supabase.from('drivers').select('*').eq('id', driverId).single();
-  if (d) {
-    const amountVal = Number(amount || 0);
-    const currentPending = Number(d.pending_settlement || 0);
-    const currentSettled = Number(d.cod_settled || 0);
-    const settled = amountVal;
-    const newSettled = currentSettled + settled;
-    const newPending = Math.max(0, currentPending - settled);
+  const amountVal = Number(amount || 0);
+  if (amountVal <= 0) return getDrivers();
 
-    await supabase
-      .from('drivers')
-      .update({ cod_settled: newSettled, pending_settlement: newPending })
-      .eq('id', driverId);
+  const lockKey = `${driverId}_${amountVal}`;
+  if (inFlightSettlements.has(lockKey)) return getDrivers();
+  inFlightSettlements.add(lockKey);
 
-    // Record settlement
-    await supabase.from('driver_settlements').insert({
-      id: `STL-${Date.now()}`,
-      driver_id: driverId,
-      amount: amountVal,
-      note: note || 'تسوية يدوية',
-      status: 'Settled'
-    });
+  try {
+    const { data: d } = await supabase.from('drivers').select('*').eq('id', driverId).single();
+    if (d) {
+      const currentPending = Number(d.pending_settlement || 0);
+      const currentSettled = Number(d.cod_settled || 0);
+      const settled = amountVal;
+      const newSettled = currentSettled + settled;
+      const newPending = Math.max(0, currentPending - settled);
 
-    // 1. Deduct settled amount from Drivers Custody Safe (SAFE-005)
-    const stlRef = `STL-${Date.now()}`;
-    await recordSafeTransaction({
-      safeId: 'SAFE-005',
-      type: 'withdrawal',
-      amount: amountVal,
-      description: `تفريغ عُهدة نقدية وتصفية حساب مع السائق (${d.name})`,
-      ref: stlRef
-    });
+      await supabase
+        .from('drivers')
+        .update({ cod_settled: newSettled, pending_settlement: newPending })
+        .eq('id', driverId);
 
-    // 2. Deposit net settled amount into Target Main/Branch Safe
-    if (safeId) {
-      await recordSafeTransaction({
-        safeId: safeId,
-        type: 'deposit',
+      const stlRef = `STL-${Date.now()}`;
+
+      // Record settlement
+      await supabase.from('driver_settlements').insert({
+        id: stlRef,
+        driver_id: driverId,
         amount: amountVal,
-        description: `استلام تسوية عُهدة نقدية من السائق (${d.name})`,
+        note: note || 'تسوية يدوية',
+        status: 'Settled'
+      });
+
+      // 1. Deduct settled amount from Drivers Custody Safe (SAFE-005)
+      await recordSafeTransaction({
+        safeId: 'SAFE-005',
+        type: 'withdrawal',
+        amount: amountVal,
+        description: `تفريغ عُهدة نقدية وتصفية حساب مع السائق (${d.name})`,
         ref: stlRef
       });
+
+      // 2. Deposit net settled amount into Target Main/Branch Safe
+      if (safeId) {
+        await recordSafeTransaction({
+          safeId: safeId,
+          type: 'deposit',
+          amount: amountVal,
+          description: `استلام تسوية عُهدة نقدية من السائق (${d.name})`,
+          ref: stlRef
+        });
+      }
     }
+    return getDrivers();
+  } finally {
+    inFlightSettlements.delete(lockKey);
   }
-  return getDrivers();
 }
 
 export async function getDriverSettlements() {
@@ -1023,13 +1053,22 @@ export async function getSafeTransactions() {
     console.warn('Fetch transactions backup error:', err);
   }
 
-  // Deduplicate safe transactions by unique ID or safeId + ref + type
+  // Deduplicate safe transactions by unique ID and by logical reference (shipment/settlement/payout)
   const uniqueTxs = [];
   const seenKeys = new Set();
   for (const t of txs) {
-    const key = t.id ? t.id : `${t.safeId}_${t.ref}_${t.type}`;
-    if (!seenKeys.has(key)) {
-      seenKeys.add(key);
+    const refStr = String(t.ref || '');
+    const isUniqueRefOp =
+      refStr.startsWith('TO-') ||
+      refStr.startsWith('STL-') ||
+      refStr.startsWith('PAY-') ||
+      refStr.startsWith('TXN-') ||
+      refStr.startsWith('TX-');
+    const logicalKey = isUniqueRefOp ? `${t.safeId}_${refStr}_${t.type}` : (t.id ? t.id : `${t.safeId}_${refStr}_${t.type}`);
+    const idKey = t.id || logicalKey;
+    if (!seenKeys.has(logicalKey) && !seenKeys.has(idKey)) {
+      seenKeys.add(logicalKey);
+      seenKeys.add(idKey);
       uniqueTxs.push(t);
     }
   }
